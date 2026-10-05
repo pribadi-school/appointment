@@ -61,8 +61,6 @@ export type BusySlot = { slotStart: number; teacherId: string; sameChild: boolea
 
 export type Session = { token: string; expiresAt: number; teacherId?: string };
 
-export type GeneratedPin = { teacherId: string; name: string; pin: string };
-
 export const CLASSES = ['7A', '7B', '7C', '8A', '8B', '9A', '9B', '10A', '10B', '11A', '11B', '12A', '12B'] as const;
 
 export const gradeOf = (cls: string) => parseInt(cls, 10);
@@ -80,13 +78,10 @@ export const ERROR_CODES = [
   'INVALID_PHONE',
   'NOT_FOUND',
   'CANNOT_CANCEL',
-  'BAD_PIN',
-  'PIN_NOT_SET',
   'LOCKED',
   'BAD_PASSWORD',
   'ADMIN_NOT_SET',
   'SESSION_EXPIRED',
-  'INVALID_PIN',
   'SCHEDULE_CONFLICT',
   'NETWORK',
   'UNKNOWN',

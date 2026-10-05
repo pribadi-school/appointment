@@ -134,7 +134,7 @@ export function createSupabaseApi(url: string, key: string): Api {
     parentCancel: (id, phone, childName) =>
       rpc('parent_cancel_booking', { p_booking_id: id, p_phone: phone, p_child_name: childName }),
 
-    teacherLogin: (teacherId, pin) => login('teacher_login', { p_teacher_id: teacherId, p_pin: pin }),
+    teacherLogin: (teacherId) => login('teacher_login', { p_teacher_id: teacherId }),
     teacherSchedule: async (token) => (await rpc<Row[]>('teacher_schedule', { p_token: token })).map(toBooking),
     teacherSetStatus: (token, id, status) => rpc('teacher_set_status', { p_token: token, p_booking_id: id, p_status: status }),
     logout: (token) => rpc('logout', { p_token: token }),
@@ -162,9 +162,6 @@ export function createSupabaseApi(url: string, key: string): Api {
     adminSetRoomForSubject: (token, subject, room) =>
       rpc('admin_set_room_for_subject', { p_token: token, p_subject: subject, p_room: room }),
     adminDeleteTeacher: (token, id) => rpc('admin_delete_teacher', { p_token: token, p_teacher_id: id }),
-    adminSetPin: (token, id, pin) => rpc('admin_set_pin', { p_token: token, p_teacher_id: id, p_pin: pin }),
-    adminGeneratePins: (token, onlyMissing) => rpc('admin_generate_pins', { p_token: token, p_only_missing: onlyMissing }),
-    adminPinStatus: (token) => rpc('admin_pin_status', { p_token: token }),
     adminSaveSettings: (token, s) =>
       rpc('admin_save_settings', {
         p_token: token,
@@ -174,5 +171,15 @@ export function createSupabaseApi(url: string, key: string): Api {
         p_slot_minutes: s.slotMinutes,
         p_booking_open: s.bookingOpen,
       }),
+    async adminMaintenance(token, password, action) {
+      // Returns {error} instead of raising, like the login functions.
+      const r = await rpc<{ count?: number; error?: string }>('admin_maintenance', {
+        p_token: token,
+        p_password: password,
+        p_action: action,
+      });
+      if (r.error) throw new AppError(r.error);
+      return r.count ?? 0;
+    },
   };
 }

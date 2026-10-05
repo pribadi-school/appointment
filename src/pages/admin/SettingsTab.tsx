@@ -1,13 +1,16 @@
-/** Event date, slot times/length and the booking open/close switch. */
-import { useEffect, useState } from 'react';
-import { RotateCcw } from 'lucide-react';
-import { Button, Card, Field, SelectField, Switch } from '../../components/ui';
+/** Event date, slot times/length, the booking open/close switch, and maintenance. */
+import { useEffect, useState, type FormEvent } from 'react';
+import { LogOut, RotateCcw, Trash2, Users } from 'lucide-react';
+import { BottomSheet } from '../../components/BottomSheet';
+import { useToast } from '../../components/Toast';
+import { Button, Card, Field, Notice, SelectField, Switch } from '../../components/ui';
 import { api } from '../../lib/api';
+import type { MaintenanceAction } from '../../lib/api/api';
 import { resetDemo } from '../../lib/api/demoApi';
-import { useI18n } from '../../lib/i18n';
+import { useI18n, type MessageKey } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { fmtDate, fmtRange, slotStarts } from '../../lib/time';
-import type { Settings } from '../../lib/types';
+import { errorCode, type ErrorCode, type Settings } from '../../lib/types';
 import { useAdmin } from './AdminPage';
 
 export function SettingsTab() {
@@ -66,11 +69,98 @@ export function SettingsTab() {
         </Button>
       </Card>
 
+      <MaintenanceCard />
+
       {api.mode === 'demo' && (
         <Button variant="ghost" icon={<RotateCcw className="size-4" aria-hidden />} onClick={resetDemo}>
           {t('a_s_resetDemo')}
         </Button>
       )}
     </div>
+  );
+}
+
+const ACTIONS: { id: MaintenanceAction; label: MessageKey; hint: MessageKey; icon: typeof LogOut }[] = [
+  { id: 'sign_out_teachers', label: 'a_m_signOutTeachers', hint: 'a_m_signOutTeachersHint', icon: LogOut },
+  { id: 'sign_out_all', label: 'a_m_signOutAll', hint: 'a_m_signOutAllHint', icon: Users },
+  { id: 'clear_bookings', label: 'a_m_clearBookings', hint: 'a_m_clearBookingsHint', icon: Trash2 },
+];
+
+/** Sign everyone out or wipe all bookings. Every action asks for the admin password again. */
+function MaintenanceCard() {
+  const { t, errorText } = useI18n();
+  const toast = useToast();
+  const { token, refresh } = useAdmin();
+  const [action, setAction] = useState<(typeof ACTIONS)[number] | null>(null);
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ErrorCode | null>(null);
+
+  const close = () => {
+    setAction(null);
+    setPassword('');
+    setError(null);
+  };
+
+  const confirm = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!action) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const n = await api.adminMaintenance(token, password, action.id);
+      toast(t('a_m_done', { n }), 'success');
+      close();
+      refresh();
+    } catch (err) {
+      setError(errorCode(err));
+      setPassword('');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="p-5">
+      <h2 className="text-lg font-bold text-foreground">{t('a_m_title')}</h2>
+      <p className="mt-1 mb-4 text-sm text-muted-foreground">{t('a_m_intro')}</p>
+      <ul className="space-y-3">
+        {ACTIONS.map((a) => (
+          <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-surface-page px-4 py-3">
+            <p className="min-w-0 flex-1 text-[13px] text-muted-foreground">{t(a.hint)}</p>
+            <Button
+              size="sm"
+              variant={a.id === 'clear_bookings' ? 'danger' : 'secondary'}
+              icon={<a.icon className="size-4" aria-hidden />}
+              onClick={() => setAction(a)}
+            >
+              {t(a.label)}
+            </Button>
+          </li>
+        ))}
+      </ul>
+
+      <BottomSheet open={Boolean(action)} onClose={close} title={t('a_m_confirmTitle')}>
+        {action && (
+          <form onSubmit={confirm} className="space-y-4">
+            <p className="text-sm text-foreground">
+              <span className="font-semibold">{t(action.label)}</span> — {t(action.hint)}
+            </p>
+            <Field
+              label={t('a_password')}
+              type="password"
+              autoComplete="current-password"
+              autoFocus
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            {error && <Notice tone="error">{errorText(error)}</Notice>}
+            <Button type="submit" block loading={busy} disabled={!password} variant={action.id === 'clear_bookings' ? 'danger' : 'primary'}>
+              {t('a_m_confirm')}
+            </Button>
+          </form>
+        )}
+      </BottomSheet>
+    </Card>
   );
 }

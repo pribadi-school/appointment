@@ -7,7 +7,6 @@
 import type {
   Booking,
   BusySlot,
-  GeneratedPin,
   Lang,
   ParentDetails,
   PublicSlot,
@@ -37,7 +36,7 @@ export interface Api {
   parentCancel(bookingId: string, phone: string, childName: string): Promise<void>;
 
   // Teachers
-  teacherLogin(teacherId: string, pin: string): Promise<Session>;
+  teacherLogin(teacherId: string): Promise<Session>;
   teacherSchedule(token: string): Promise<Booking[]>;
   teacherSetStatus(token: string, bookingId: string, status: Booking['status']): Promise<void>;
   logout(token: string): Promise<void>;
@@ -53,8 +52,9 @@ export interface Api {
   adminSaveTeacher(token: string, teacher: Partial<Teacher> & { name: string }): Promise<string>;
   adminSetRoomForSubject(token: string, subject: string | null, room: string): Promise<number>;
   adminDeleteTeacher(token: string, teacherId: string): Promise<void>;
-  adminSetPin(token: string, teacherId: string, pin: string): Promise<void>;
-  adminGeneratePins(token: string, onlyMissing: boolean): Promise<GeneratedPin[]>;
-  adminPinStatus(token: string): Promise<string[]>;
   adminSaveSettings(token: string, settings: Settings): Promise<void>;
+  /** Needs the admin password again. Returns how many sessions/bookings were removed. */
+  adminMaintenance(token: string, password: string, action: MaintenanceAction): Promise<number>;
 }
+
+export type MaintenanceAction = 'sign_out_teachers' | 'sign_out_all' | 'clear_bookings';

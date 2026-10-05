@@ -1,6 +1,6 @@
-/** Edit teachers, subjects, grades, rooms, PINs — no code needed. */
+/** Edit teachers, subjects, grades, rooms — no code needed. */
 import { useMemo, useState } from 'react';
-import { KeyRound, MapPin, Pencil, Plus, Printer, Search, Trash2 } from 'lucide-react';
+import { MapPin, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { BottomSheet } from '../../components/BottomSheet';
 import { Avatar, Button, Card, Field, SelectField, StatusPill, Switch, cx } from '../../components/ui';
 import { api } from '../../lib/api';
@@ -8,7 +8,7 @@ import { isLeadershipRole, parseHomeroom } from '../../data/seedTeachers';
 import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { initials } from '../../lib/teachers';
-import { CLASSES, type GeneratedPin, type Teacher } from '../../lib/types';
+import { CLASSES, type Teacher } from '../../lib/types';
 import { useAdmin } from './AdminPage';
 
 const NEW: Teacher = {
@@ -27,10 +27,8 @@ const NEW: Teacher = {
 export function TeachersTab() {
   const { t } = useI18n();
   const { teachers } = useLive();
-  const { token, pinIds, run, refreshPins } = useAdmin();
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState<Teacher | null>(null);
-  const [pins, setPins] = useState<GeneratedPin[] | null>(null);
   const [rooms, setRooms] = useState(false);
 
   const list = useMemo(
@@ -40,14 +38,6 @@ export function TeachersTab() {
         .sort((a, b) => a.name.localeCompare(b.name)),
     [teachers, q],
   );
-
-  const generate = async () => {
-    let out: GeneratedPin[] = [];
-    if (await run(async () => (out = await api.adminGeneratePins(token, true)))) {
-      setPins(out);
-      refreshPins();
-    }
-  };
 
   return (
     <>
@@ -65,9 +55,6 @@ export function TeachersTab() {
         </div>
         <Button size="sm" variant="secondary" icon={<MapPin className="size-4" aria-hidden />} onClick={() => setRooms(true)}>
           {t('a_roomsBySubject')}
-        </Button>
-        <Button size="sm" variant="secondary" icon={<KeyRound className="size-4" aria-hidden />} onClick={generate}>
-          {t('a_genPins')}
         </Button>
         <Button size="sm" icon={<Plus className="size-4" aria-hidden />} onClick={() => setEditing(NEW)}>
           {t('a_addTeacher')}
@@ -90,7 +77,6 @@ export function TeachersTab() {
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {!x.available && <StatusPill status="taken" label={t('a_t_unavailable')} />}
-                <StatusPill status={pinIds.has(x.id) ? 'done' : 'noShow'} label={pinIds.has(x.id) ? t('a_t_pinSet') : t('a_t_pinMissing')} />
                 {x.isLeadership && <StatusPill status="available" label={t('t_leadership')} />}
               </div>
             </div>
@@ -103,46 +89,14 @@ export function TeachersTab() {
 
       {editing && <TeacherSheet teacher={editing} onClose={() => setEditing(null)} />}
       {rooms && <RoomsSheet onClose={() => setRooms(false)} />}
-
-      <BottomSheet
-        open={Boolean(pins)}
-        onClose={() => setPins(null)}
-        title={t('a_genPinsTitle')}
-        footer={
-          pins?.length ? (
-            <Button block variant="secondary" icon={<Printer className="size-4" aria-hidden />} onClick={() => window.print()}>
-              {t('a_print')}
-            </Button>
-          ) : undefined
-        }
-      >
-        {pins?.length ? (
-          <>
-            <p className="mb-3 text-sm font-semibold text-destructive">{t('a_genPinsNote')}</p>
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-border">
-                {pins.map((p) => (
-                  <tr key={p.teacherId}>
-                    <td className="py-2 text-foreground">{p.name}</td>
-                    <td className="py-2 text-right font-mono text-lg font-bold tracking-widest">{p.pin}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground">{t('a_genPinsNone')}</p>
-        )}
-      </BottomSheet>
     </>
   );
 }
 
 function TeacherSheet({ teacher, onClose }: { teacher: Teacher; onClose: () => void }) {
   const { t } = useI18n();
-  const { token, bookings, run, refreshPins } = useAdmin();
+  const { token, bookings, run } = useAdmin();
   const [f, setF] = useState<Teacher>(teacher);
-  const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const isNew = !teacher.id;
@@ -227,28 +181,6 @@ function TeacherSheet({ teacher, onClose }: { teacher: Teacher; onClose: () => v
 
         {!isNew && (
           <>
-            <div className="flex items-end gap-2 border-t border-border pt-4">
-              <Field
-                className="flex-1"
-                label={t('a_t_newPin')}
-                inputMode="numeric"
-                maxLength={6}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-              />
-              <Button
-                variant="secondary"
-                disabled={pin.length < 4}
-                onClick={async () => {
-                  if (await run(() => api.adminSetPin(token, teacher.id, pin), t('a_t_pinSaved'))) {
-                    setPin('');
-                    refreshPins();
-                  }
-                }}
-              >
-                {t('a_t_setPin')}
-              </Button>
-            </div>
             <div className="border-t border-border pt-4">
               {confirmDelete ? (
                 <div className="space-y-3">

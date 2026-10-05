@@ -1,15 +1,15 @@
 /**
- * Teacher view: pick your name, enter your PIN, see your own consultations
+ * Teacher view: pick your name, see your own consultations
  * with parent details. Mark Done / No-show on the day. The current slot is
  * highlighted from the clock and scrolled into view.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-
-import { Ban, Check, ChevronDown, LogOut, MapPin, MessageCircle, Search, UserX } from 'lucide-react';
+import { Link } from 'react-router';
+import { Ban, Check, ChevronDown, MapPin, MessageCircle, Search, Users, UserX } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { Header } from '../components/Header';
 import { useToast } from '../components/Toast';
-import { Avatar, Button, Card, Field, Notice, PulseDot, Skeleton, StatusPill, cx } from '../components/ui';
+import { Avatar, Button, Card, Notice, PulseDot, Skeleton, StatusPill, cx } from '../components/ui';
 import { api } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { useLive, useNow } from '../lib/live';
@@ -41,7 +41,6 @@ function TeacherLogin({ onSignIn }: { onSignIn: (s: Session) => void }) {
   const { t, errorText } = useI18n();
   const { teachers, loading } = useLive();
   const [teacherId, setTeacherId] = useState<string | null>(() => load<string | null>(KEYS.lastTeacher, null));
-  const [pin, setPin] = useState('');
   const [sheet, setSheet] = useState(false);
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
@@ -55,12 +54,11 @@ function TeacherLogin({ onSignIn }: { onSignIn: (s: Session) => void }) {
     setBusy(true);
     setError(null);
     try {
-      const s = await api.teacherLogin(teacherId, pin);
+      const s = await api.teacherLogin(teacherId);
       save(KEYS.lastTeacher, teacherId);
       onSignIn({ ...s, teacherId });
     } catch (err) {
       setError(errorCode(err));
-      setPin('');
     } finally {
       setBusy(false);
     }
@@ -91,22 +89,21 @@ function TeacherLogin({ onSignIn }: { onSignIn: (s: Session) => void }) {
               <ChevronDown className="size-5 shrink-0 text-muted-foreground" aria-hidden />
             </button>
           </div>
-          <Field
-            label={t('tv_pin')}
-            type="password"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="[0-9]*"
-            maxLength={6}
-            value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-            className="[&_input]:text-center [&_input]:text-xl [&_input]:tracking-[0.5em]"
-          />
           {error && <Notice tone="error">{errorText(error)}</Notice>}
-          <Button type="submit" block loading={busy} disabled={!teacherId || pin.length < 4}>
+          <Button type="submit" block loading={busy} disabled={!teacherId}>
             {t('tv_signIn')}
           </Button>
         </form>
+
+        <div className="mt-10 flex justify-center border-t border-border pt-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 rounded-full border border-border-strong bg-surface px-5 py-2.5 text-[15px] font-semibold text-foreground hover:bg-surface-muted"
+          >
+            <Users className="size-5" aria-hidden />
+            {t('imParent')}
+          </Link>
+        </div>
       </main>
 
       <BottomSheet open={sheet} onClose={() => setSheet(false)} title={t('tv_chooseName')}>
@@ -210,8 +207,8 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
       <Header
         title={t('nav_teacher')}
         right={
-          <button type="button" onClick={onSignOut} aria-label={t('tv_signOut')} className="inline-flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-page">
-            <LogOut className="size-[18px]" aria-hidden />
+          <button type="button" onClick={onSignOut} className="inline-flex h-9 items-center justify-center rounded-full border border-border-strong px-4 text-sm font-semibold text-foreground hover:bg-surface-page">
+            {t('tv_signOut')}
           </button>
         }
       />

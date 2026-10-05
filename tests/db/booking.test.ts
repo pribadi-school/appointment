@@ -134,11 +134,11 @@ describe('parent rules', () => {
 });
 
 describe('privacy (Row Level Security)', () => {
-  it('the public role cannot read bookings, PINs or sessions', async () => {
+  it('the public role cannot read bookings or sessions', async () => {
     await book(c, teacherA, at('09:00'), '081234567890');
     await c.query('set role anon');
     try {
-      for (const table of ['private.bookings', 'private.teacher_pins', 'private.sessions', 'private.secrets']) {
+      for (const table of ['private.bookings', 'private.sessions', 'private.secrets']) {
         expect(await outcome(c.query(`select * from ${table}`))).toMatch(/permission denied/);
       }
       expect(await outcome(c.query(`insert into public.slot_status values ('${teacherA}', now(), 'taken', null)`))).toMatch(
@@ -180,15 +180,10 @@ describe('privacy (Row Level Security)', () => {
 });
 
 describe('teacher and admin sessions', () => {
-  it('teacher PIN login, schedule and Done marking', async () => {
-    await c.query(`select public.set_admin_password('correct horse')`);
-    const admin = (await c.query(`select public.admin_login('correct horse') r`)).rows[0].r;
-    expect(admin.token).toBeTruthy();
-    await c.query('select public.admin_set_pin($1, $2, $3)', [admin.token, teacherA, '4321']);
-
-    const bad = (await c.query('select public.teacher_login($1, $2) r', [teacherA, '0000'])).rows[0].r;
-    expect(bad.error).toBe('BAD_PIN');
-    const t = (await c.query('select public.teacher_login($1, $2) r', [teacherA, '4321'])).rows[0].r;
+  it('teacher login by name, schedule and Done marking', async () => {
+    const bad = (await c.query('select public.teacher_login($1) r', ['00000000-0000-0000-0000-000000000000'])).rows[0].r;
+    expect(bad.error).toBe('NOT_FOUND');
+    const t = (await c.query('select public.teacher_login($1) r', [teacherA])).rows[0].r;
     expect(t.token).toBeTruthy();
 
     const b = await book(c, teacherA, at('09:00'), '081234567890');
@@ -204,6 +199,30 @@ describe('teacher and admin sessions', () => {
     const r = (await c.query(`select public.admin_login('nope') r`)).rows[0].r;
     expect(r.error).toBe('BAD_PASSWORD');
     expect(await outcome(c.query(`select public.admin_bookings('not-a-token')`))).toBe('SESSION_EXPIRED');
+  });
+
+  it('maintenance needs the password again: sign everyone out, clear bookings', async () => {
+    await c.query('delete from private.sessions');
+    await c.query(`select public.set_admin_password('correct horse')`);
+    const admin = (await c.query(`select public.admin_login('correct horse') r`)).rows[0].r;
+    const other = (await c.query(`select public.admin_login('correct horse') r`)).rows[0].r;
+    const teacher = (await c.query('select public.teacher_login($1) r', [teacherA])).rows[0].r;
+    await book(c, teacherA, at('09:00'), '081234567890');
+    const run = async (password: string, action: string) =>
+      (await c.query('select public.admin_maintenance($1, $2, $3) r', [admin.token, password, action])).rows[0].r;
+
+    expect((await run('wrong', 'clear_bookings')).error).toBe('BAD_PASSWORD');
+    expect((await c.query('select count(*)::int n from public.slot_status')).rows[0].n).toBe(1);
+
+    expect((await run('correct horse', 'sign_out_teachers')).count).toBe(1);
+    expect(await outcome(c.query('select public.teacher_schedule($1)', [teacher.token]))).toBe('SESSION_EXPIRED');
+
+    expect((await run('correct horse', 'sign_out_all')).count).toBe(1);
+    expect(await outcome(c.query('select public.admin_bookings($1)', [other.token]))).toBe('SESSION_EXPIRED');
+    expect(await outcome(c.query('select public.admin_bookings($1)', [admin.token]))).toBe('OK');
+
+    expect((await run('correct horse', 'clear_bookings')).count).toBe(1);
+    expect((await c.query('select count(*)::int n from public.slot_status')).rows[0].n).toBe(0);
   });
 
   it('changing the event date moves bookings with it; impossible time changes are refused', async () => {

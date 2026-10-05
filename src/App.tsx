@@ -3,7 +3,7 @@
  *   /          parent booking flow (share this link / QR code)
  *   /my        parent's own schedule
  *   /board     public live board for the venue TV
- *   /teacher   teacher schedule (PIN)
+ *   /teacher   teacher schedule (pick your name)
  *   /admin     admin dashboard (password)
  */
 import { lazy, Suspense } from 'react';

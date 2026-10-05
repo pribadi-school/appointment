@@ -57,7 +57,7 @@ export function SchoolLogo({ className }: { className?: string }) {
       alt="SD-SMP-SMA Pribadi Depok"
       width={900}
       height={252}
-      className={cx('h-9 w-auto shrink-0', className)}
+      className={cx('w-auto shrink-0', className ?? 'h-9')}
     />
   );
 }
@@ -69,13 +69,13 @@ export function Header({ title, right, wide }: { title?: string; right?: ReactNo
       {api.mode === 'demo' && (
         <div className="no-print bg-foreground px-4 py-1.5 text-center text-[12px] font-medium text-on-primary">{t('demoBanner')}</div>
       )}
-      <header className="no-print sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur-md">
-        <div className={cx('mx-auto flex h-14 items-center gap-3 px-4', wide ? 'max-w-[1600px]' : 'max-w-3xl')}>
+      <header className="no-print sticky top-0 z-40 border-b border-border bg-surface/90 shadow-sm backdrop-blur-md">
+        <div className={cx('mx-auto flex min-h-20 items-center gap-4 px-5 py-4 sm:min-h-24 sm:gap-5 sm:px-8 sm:py-5', wide ? 'max-w-[1600px]' : 'max-w-3xl')}>
           <Link to="/" className="flex min-w-0 items-center gap-3 rounded-md" aria-label={`${t('school')} — ${t('appName')}`}>
-            <SchoolLogo className="h-9" />
+            <SchoolLogo className="h-8 sm:h-9" />
             {/* Sub-pages (Live board, Admin …) show their name next to the logo from tablet width up. */}
             {title && (
-              <span className="hidden min-w-0 border-l border-border-strong pl-3 text-[15px] font-bold text-foreground sm:block">
+              <span className="hidden min-w-0 border-l border-border-strong pl-4 text-base font-bold text-foreground sm:block">
                 <span className="block truncate">{title}</span>
               </span>
             )}

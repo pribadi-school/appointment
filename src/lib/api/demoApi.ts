@@ -7,7 +7,7 @@
  * slot per teacher per child, no two rooms at once), but it is NOT secure and
  * NOT shared between devices. Never use it for the real event.
  *
- * Demo admin password: "demo". Demo teacher PIN: "1234".
+ * Demo admin password: "demo". Teachers sign in by picking their name.
  */
 import { parseSeed } from '../../data/seedTeachers';
 import { childKey, firstNameKey, normalizePhone } from '../phone';
@@ -20,12 +20,10 @@ type Db = {
   settings: Settings;
   teachers: Teacher[];
   bookings: Booking[];
-  pins: Record<string, string>;
   sessions: { token: string; role: 'admin' | 'teacher'; teacherId?: string; expiresAt: number }[];
 };
 
 const DEMO_ADMIN_PASSWORD = 'demo';
-const DEMO_PIN = '1234';
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const uid = () => crypto.randomUUID();
@@ -38,8 +36,7 @@ const DEMO_NAMES = ['Aisyah', 'Bima', 'Citra', 'Dimas', 'Elena', 'Farhan', 'Gita
 function freshDb(): Db {
   const teachers: Teacher[] = parseSeed().map((t) => ({ ...t, id: uid() }));
   const settings: Settings = { eventDate: '2026-12-19', dayStart: '08:30', dayEnd: '12:30', slotMinutes: 10, bookingOpen: true };
-  const db: Db = { settings, teachers, bookings: [], pins: {}, sessions: [] };
-  for (const t of teachers) db.pins[t.id] = DEMO_PIN;
+  const db: Db = { settings, teachers, bookings: [], sessions: [] };
   // Pre-fill some bookings so the board looks like a real morning.
   if (!isTest) {
     const starts = slotStarts(settings);
@@ -247,11 +244,10 @@ export function createDemoApi(): Api {
       write(db, 'slots');
     },
 
-    async teacherLogin(teacherId, pin) {
+    async teacherLogin(teacherId) {
       await wait();
       const db = read();
-      if (!db.pins[teacherId]) throw new AppError('PIN_NOT_SET');
-      if (db.pins[teacherId] !== pin.trim()) throw new AppError('BAD_PIN');
+      if (!db.teachers.some((t) => t.id === teacherId)) throw new AppError('NOT_FOUND');
       return newSession(db, 'teacher', teacherId);
     },
     async teacherSchedule(token) {
@@ -377,37 +373,8 @@ export function createDemoApi(): Api {
       session(db, token, 'admin');
       db.teachers = db.teachers.filter((t) => t.id !== id);
       db.bookings = db.bookings.filter((b) => b.teacherId !== id);
-      delete db.pins[id];
       write(db, 'teachers');
       write(db, 'slots');
-    },
-    async adminSetPin(token, id, pin) {
-      await wait(150);
-      const db = read();
-      session(db, token, 'admin');
-      if (!/^\d{4,6}$/.test(pin)) throw new AppError('INVALID_PIN');
-      db.pins[id] = pin;
-      save(KEYS.demoDb, db);
-    },
-    async adminGeneratePins(token, onlyMissing) {
-      await wait();
-      const db = read();
-      session(db, token, 'admin');
-      const out = db.teachers
-        .filter((t) => !onlyMissing || !db.pins[t.id])
-        .map((t) => {
-          const pin = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-          db.pins[t.id] = pin;
-          return { teacherId: t.id, name: t.name, pin };
-        });
-      save(KEYS.demoDb, db);
-      return out;
-    },
-    async adminPinStatus(token) {
-      await wait(100);
-      const db = read();
-      session(db, token, 'admin');
-      return Object.keys(db.pins);
     },
     async adminSaveSettings(token, s) {
       await wait();
@@ -420,6 +387,24 @@ export function createDemoApi(): Api {
       if (next.bookings.some((b) => !valid.has(b.slotStart))) throw new AppError('SCHEDULE_CONFLICT');
       write(next, 'settings');
       write(next, 'slots');
+    },
+    async adminMaintenance(token, password, action) {
+      await wait();
+      const db = read();
+      session(db, token, 'admin');
+      if (password !== DEMO_ADMIN_PASSWORD) throw new AppError('BAD_PASSWORD');
+      let count: number;
+      if (action === 'clear_bookings') {
+        count = db.bookings.length;
+        db.bookings = [];
+        write(db, 'slots');
+      } else {
+        const keep = (s: Db['sessions'][number]) => (action === 'sign_out_teachers' ? s.role !== 'teacher' : s.token === token);
+        count = db.sessions.filter((s) => !keep(s)).length;
+        db.sessions = db.sessions.filter(keep);
+        save(KEYS.demoDb, db);
+      }
+      return count;
     },
   };
 }

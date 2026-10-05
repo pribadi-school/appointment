@@ -4,8 +4,8 @@
  * goes back one step, like a native app.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router';
-import { ChevronLeft } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router';
+import { ChevronLeft, GraduationCap } from 'lucide-react';
 import { Header } from '../components/Header';
 import { cx } from '../components/ui';
 import { api } from '../lib/api';
@@ -187,6 +187,18 @@ export function BookPage() {
           {step === 'confirm' && teacherId && slotStart && <ConfirmStep flow={flow} />}
           {step === 'done' && result && <DoneStep flow={flow} />}
         </div>
+
+        {step === 'details' && (
+          <div className="mt-10 flex justify-center border-t border-border pt-6">
+            <Link
+              to="/teacher"
+              className="inline-flex items-center gap-2 rounded-full border border-border-strong bg-surface px-5 py-2.5 text-[15px] font-semibold text-foreground hover:bg-surface-muted"
+            >
+              <GraduationCap className="size-5" aria-hidden />
+              {t('imTeacher')}
+            </Link>
+          </div>
+        )}
       </main>
     </div>
   );

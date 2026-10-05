@@ -12,7 +12,7 @@
 --     slot_status. slot_status says "this slot is taken / done" and nothing
 --     else (plus a class + first initial such as "8B – A." for the venue board).
 --   * Every change (booking, cancelling, admin edits) goes through a Postgres
---     function below. Those functions check the input, the PIN or the admin
+--     function below. Those functions check the input and the teacher or admin
 --     session, and then write to the private tables.
 --   * Double booking is impossible because of the UNIQUE constraint
 --     bookings_teacher_slot_key on (teacher_id, slot_start). If two parents tap
@@ -105,12 +105,12 @@ create unique index if not exists bookings_child_teacher_key
 
 create index if not exists bookings_phone_idx on private.bookings (phone);
 
-create table if not exists private.teacher_pins (
-  teacher_id  uuid primary key references public.teachers(id) on delete cascade,
-  salt        text not null,
-  hash        text not null,
-  updated_at  timestamptz not null default now()
-);
+-- Teachers sign in by picking their name (no PIN). Clean up the old PIN table.
+drop function if exists public.admin_set_pin(text, uuid, text);
+drop function if exists public.admin_generate_pins(text, boolean);
+drop function if exists public.admin_pin_status(text);
+drop function if exists public.teacher_login(uuid, text);
+drop table if exists private.teacher_pins;
 
 -- Short-lived login sessions for teachers and the admin.
 create table if not exists private.sessions (
@@ -128,7 +128,7 @@ create table if not exists private.secrets (
   hash  text not null
 );
 
--- Failed login attempts, used to slow down PIN / password guessing.
+-- Failed login attempts, used to slow down password guessing.
 create table if not exists private.login_failures (
   key  text not null,
   at   timestamptz not null default now()
@@ -143,7 +143,6 @@ alter table public.settings     enable row level security;
 alter table public.teachers     enable row level security;
 alter table public.slot_status  enable row level security;
 alter table private.bookings    enable row level security;  -- no policies = no access
-alter table private.teacher_pins enable row level security;
 alter table private.sessions    enable row level security;
 alter table private.secrets     enable row level security;
 alter table private.login_failures enable row level security;
@@ -461,31 +460,19 @@ begin
 end $$;
 
 -- =============================================================================
--- PUBLIC FUNCTIONS — teachers (PIN login)
+-- PUBLIC FUNCTIONS — teachers (pick your name, no PIN)
 -- =============================================================================
 
--- Returns {token, expiresAt} or {error}. Errors are returned (not raised) so
--- the failed attempt is still recorded for the lock-out counter.
-create or replace function public.teacher_login(p_teacher_id uuid, p_pin text) returns json
+-- Returns {token, expiresAt} or {error}.
+create or replace function public.teacher_login(p_teacher_id uuid) returns json
 language plpgsql security definer set search_path = '' as $$
 declare
-  v_pin   private.teacher_pins;
-  v_key   text := 'teacher:' || p_teacher_id;
   v_token text := private.random_token();
   v_exp   timestamptz := now() + interval '18 hours';
 begin
-  if (select count(*) from private.login_failures where key = v_key and at > now() - interval '10 minutes') >= 8 then
-    return json_build_object('error', 'LOCKED');
+  if not exists (select 1 from public.teachers where id = p_teacher_id) then
+    return json_build_object('error', 'NOT_FOUND');
   end if;
-  select * into v_pin from private.teacher_pins where teacher_id = p_teacher_id;
-  if not found then
-    return json_build_object('error', 'PIN_NOT_SET');
-  end if;
-  if private.hash_secret(v_pin.salt, btrim(coalesce(p_pin, ''))) <> v_pin.hash then
-    insert into private.login_failures (key) values (v_key);
-    return json_build_object('error', 'BAD_PIN');
-  end if;
-  delete from private.login_failures where key = v_key;
   delete from private.sessions where expires_at < now();
   insert into private.sessions (token, role, teacher_id, expires_at) values (v_token, 'teacher', p_teacher_id, v_exp);
   return json_build_object('token', v_token, 'expiresAt', v_exp, 'teacherId', p_teacher_id);
@@ -694,52 +681,6 @@ begin
   delete from public.teachers where id = p_teacher_id;
 end $$;
 
-create or replace function public.admin_set_pin(p_token text, p_teacher_id uuid, p_pin text) returns void
-language plpgsql security definer set search_path = '' as $$
-declare v_salt text := private.random_token();
-begin
-  perform private.require_session(p_token, 'admin');
-  if coalesce(p_pin, '') !~ '^[0-9]{4,6}$' then
-    raise exception 'INVALID_PIN';
-  end if;
-  insert into private.teacher_pins (teacher_id, salt, hash) values (p_teacher_id, v_salt, private.hash_secret(v_salt, p_pin))
-  on conflict (teacher_id) do update set salt = excluded.salt, hash = excluded.hash, updated_at = now();
-  delete from private.login_failures where key = 'teacher:' || p_teacher_id;
-end $$;
-
--- Generates random 4-digit PINs and returns them ONCE so the admin can print
--- them. Only hashes are stored.
-create or replace function public.admin_generate_pins(p_token text, p_only_missing boolean default true) returns json
-language plpgsql security definer set search_path = '' as $$
-declare
-  t      record;
-  v_pin  text;
-  v_salt text;
-  v_out  json[] := '{}';
-begin
-  perform private.require_session(p_token, 'admin');
-  for t in
-    select id, name from public.teachers te
-    where not p_only_missing or not exists (select 1 from private.teacher_pins p where p.teacher_id = te.id)
-    order by sort_order, name
-  loop
-    v_pin  := lpad(floor(random() * 10000)::int::text, 4, '0');
-    v_salt := private.random_token();
-    insert into private.teacher_pins (teacher_id, salt, hash) values (t.id, v_salt, private.hash_secret(v_salt, v_pin))
-    on conflict (teacher_id) do update set salt = excluded.salt, hash = excluded.hash, updated_at = now();
-    v_out := v_out || json_build_object('teacherId', t.id, 'name', t.name, 'pin', v_pin);
-  end loop;
-  return array_to_json(v_out);
-end $$;
-
--- Which teachers already have a PIN (ids only).
-create or replace function public.admin_pin_status(p_token text) returns json
-language plpgsql security definer set search_path = '' as $$
-begin
-  perform private.require_session(p_token, 'admin');
-  return coalesce((select json_agg(teacher_id) from private.teacher_pins), '[]'::json);
-end $$;
-
 -- Save event settings. If the date changes, existing bookings move with it.
 -- Refuses (SCHEDULE_CONFLICT) if existing bookings would not fit new times.
 create or replace function public.admin_save_settings(
@@ -763,6 +704,41 @@ begin
   if exists (select 1 from private.bookings b where not private.is_valid_slot(b.slot_start)) then
     raise exception 'SCHEDULE_CONFLICT';  -- rolls back everything above
   end if;
+end $$;
+
+-- Maintenance actions. The admin must type the password again, even while
+-- signed in. Returns {count} or {error}; errors are returned (not raised) so a
+-- wrong password still counts toward the admin lock-out.
+--   sign_out_teachers  ends every teacher session
+--   sign_out_all       ends every teacher and admin session except this one
+--   clear_bookings     deletes ALL bookings and blocked slots (teachers and
+--                      settings are kept)
+create or replace function public.admin_maintenance(p_token text, p_password text, p_action text) returns json
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_s      private.sessions := private.require_session(p_token, 'admin');
+  v_secret private.secrets;
+  v_count  int;
+begin
+  if (select count(*) from private.login_failures where key = 'admin' and at > now() - interval '15 minutes') >= 30 then
+    return json_build_object('error', 'LOCKED');
+  end if;
+  select * into v_secret from private.secrets where key = 'admin_password';
+  if not found or private.hash_secret(v_secret.salt, coalesce(p_password, '')) <> v_secret.hash then
+    insert into private.login_failures (key) values ('admin');
+    return json_build_object('error', 'BAD_PASSWORD');
+  end if;
+  if p_action = 'sign_out_teachers' then
+    delete from private.sessions where role = 'teacher';
+  elsif p_action = 'sign_out_all' then
+    delete from private.sessions where token <> v_s.token;
+  elsif p_action = 'clear_bookings' then
+    delete from private.bookings;
+  else
+    return json_build_object('error', 'INVALID_INPUT');
+  end if;
+  get diagnostics v_count = row_count;
+  return json_build_object('count', v_count);
 end $$;
 
 -- Only callable by the database owner (from `npm run db:setup`).

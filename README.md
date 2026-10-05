@@ -13,7 +13,7 @@ update live.
 | Book a consultation | Parents (share this link / QR) | `/` |
 | My schedule | Parents | `/my` |
 | Live board | Venue TV, anyone | `/board` |
-| Teacher schedule | Teachers (name + PIN) | `/teacher` |
+| Teacher schedule | Teachers (pick your name) | `/teacher` |
 | Admin | School staff (password) | `/admin` |
 
 The app is in English by default, with an **EN | ID** switch in the header.
@@ -35,7 +35,7 @@ Open http://localhost:5173. Without Supabase settings the app runs in **demo
 mode**: data is stored only in that browser, and tabs update each other live.
 
 - Admin password: `demo`
-- Teacher PIN: `1234`
+- Teachers: pick your name on `/teacher` (no PIN)
 - Rehearse the day: add `?now=09:12` to `/board` or `/teacher` to see the
   board as it would look at 09.12 on the event day.
 
@@ -109,10 +109,7 @@ output folder `dist`, and add an SPA fallback to `index.html`.
    slot length. Booking can be opened and closed here or on the dashboard.
 2. **Teachers → Rooms by subject**: replace the placeholder room names with
    the real ones. You can also edit any single teacher's room.
-3. **Teachers → Generate PINs for teachers without one**: print the list and
-   hand each teacher their PIN. PINs are shown only once; you can set a new
-   one per teacher at any time.
-4. **QR code**: print the poster and share the link in parent WhatsApp groups.
+3. **QR code**: print the poster and share the link in parent WhatsApp groups.
 
 ---
 
@@ -136,13 +133,15 @@ output folder `dist`, and add an SPA fallback to `index.html`.
 
 - Parent names and phone numbers are stored in the `private` schema, which
   Supabase never exposes to browsers. Row Level Security is on for every table.
-- The public can read only `settings`, `teachers` (no PINs), and `slot_status`.
+- The public can read only `settings`, `teachers`, and `slot_status`.
   `slot_status` shows *taken/done* plus a class and initial such as
   "8B – A." for the venue board, and nothing else.
-- Every change goes through a checked Postgres function. Teacher PINs and the
-  admin password are stored only as salted hashes. Logins create sessions
-  that expire (teachers after 18h, admin after 12h). Repeated wrong PINs lock
-  that teacher for 10 minutes.
+- Every change goes through a checked Postgres function. The admin password
+  is stored only as a salted hash. Logins create sessions that expire
+  (teachers after 18h, admin after 12h).
+- **Teachers sign in by picking their name — there is no PIN.** Anyone who
+  opens `/teacher` can view any teacher's schedule, including parent names
+  and WhatsApp numbers, and mark slots Done / No-show.
 - "My schedule" requires **both** the WhatsApp number **and** the child's name.
 
 ## Timezone

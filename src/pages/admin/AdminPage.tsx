@@ -22,9 +22,7 @@ import { QrTab } from './QrTab';
 type AdminCtx = {
   token: string;
   bookings: Booking[] | null;
-  pinIds: Set<string>;
   refresh: () => Promise<void>;
-  refreshPins: () => Promise<void>;
   /** Run an admin action; shows a friendly toast on error. Returns true on success. */
   run: (fn: () => Promise<unknown>, okText?: string) => Promise<boolean>;
 };
@@ -87,10 +85,9 @@ function AdminLogin({ onSignIn }: { onSignIn: (s: Session) => void }) {
 function AdminShell({ token, onSignOut }: { token: string; onSignOut: () => void }) {
   const { t, errorText } = useI18n();
   const toast = useToast();
-  const { version, teachers } = useLive();
+  const { version } = useLive();
   const [tab, setTab] = useState<Tab>('dashboard');
   const [bookings, setBookings] = useState<Booking[] | null>(null);
-  const [pinIds, setPinIds] = useState<Set<string>>(new Set());
 
   const handle = useCallback(
     (e: unknown) => {
@@ -109,20 +106,9 @@ function AdminShell({ token, onSignOut }: { token: string; onSignOut: () => void
     }
   }, [token, handle]);
 
-  const refreshPins = useCallback(async () => {
-    try {
-      setPinIds(new Set(await api.adminPinStatus(token)));
-    } catch (e) {
-      handle(e);
-    }
-  }, [token, handle]);
-
   useEffect(() => {
     refresh();
   }, [refresh, version]);
-  useEffect(() => {
-    refreshPins();
-  }, [refreshPins, teachers.length]);
 
   const run = useCallback(
     async (fn: () => Promise<unknown>, okText?: string) => {
@@ -149,7 +135,7 @@ function AdminShell({ token, onSignOut }: { token: string; onSignOut: () => void
   ];
 
   return (
-    <Ctx.Provider value={{ token, bookings, pinIds, refresh, refreshPins, run }}>
+    <Ctx.Provider value={{ token, bookings, refresh, run }}>
       <div className="min-h-dvh">
         <Header
           title={t('a_title')}

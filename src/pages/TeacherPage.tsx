@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
-import { Ban, Check, ChevronDown, MapPin, MessageCircle, Search, Users, UserX } from 'lucide-react';
+import { Ban, Check, ChevronDown, LogOut, MapPin, MessageCircle, Search, Users, UserX } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { Header } from '../components/Header';
 import { useToast } from '../components/Toast';
@@ -226,6 +226,7 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
         title={t('nav_teacher')}
         right={
           <button type="button" onClick={onSignOut} className={buttonClass('secondary', 'sm')}>
+            <LogOut className="size-4" aria-hidden />
             {t('tv_signOut')}
           </button>
         }

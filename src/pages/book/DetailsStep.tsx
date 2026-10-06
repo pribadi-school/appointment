@@ -218,7 +218,7 @@ export function DetailsStep({ flow }: { flow: Flow }) {
         ))}
       </BottomSheet>
 
-      <StickyBar>
+      <StickyBar backTo="/">
         <Button type="submit" form="details-form" block disabled={Boolean(closed)}>
           {t('continue')}
         </Button>

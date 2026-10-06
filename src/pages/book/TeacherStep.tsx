@@ -1,6 +1,7 @@
 /** Step 2: homeroom teacher first, then teachers of the child's grade by subject, then leadership. */
 import { useMemo, useState } from 'react';
 import { Check, ChevronRight, MapPin, Search, X } from 'lucide-react';
+import { StickyBar } from '../../components/Header';
 import { Avatar, Skeleton, StatusPill, cx } from '../../components/ui';
 import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
@@ -142,6 +143,8 @@ export function TeacherStep({ flow }: { flow: Flow }) {
           })}
         </div>
       )}
+
+      <StickyBar onBack={() => window.history.back()} />
     </>
   );
 }

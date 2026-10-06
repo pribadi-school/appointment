@@ -1,10 +1,11 @@
 /** Sticky app header: school mark, title, Live indicator and EN | ID toggle. */
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
+import { ChevronLeft } from 'lucide-react';
 import { api } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { useLive } from '../lib/live';
-import { cx } from './ui';
+import { buttonClass, cx } from './ui';
 
 export function LiveIndicator({ className }: { className?: string }) {
   const { t } = useI18n();
@@ -91,11 +92,31 @@ export function Header({ title, right, wide }: { title?: string; right?: ReactNo
   );
 }
 
-/** Fixed bottom action bar (native-app style): solid surface with a top border, safe-area aware. */
-export function StickyBar({ children }: { children: ReactNode }) {
+/**
+ * Fixed bottom action bar (native-app style): solid surface with a top border, safe-area aware.
+ * `backTo` (a link) or `onBack` adds a "Back" button beside the main action, within thumb reach,
+ * so parents who are unsure where they are can always step back.
+ */
+export function StickyBar({ children, backTo, onBack }: { children?: ReactNode; backTo?: string; onBack?: () => void }) {
+  const { t } = useI18n();
+  const backClass = cx(buttonClass('secondary', 'md'), children ? 'shrink-0 px-4' : 'w-full');
+  const back = backTo ? (
+    <Link to={backTo} className={backClass}>
+      <ChevronLeft className="size-5" aria-hidden />
+      {t('back')}
+    </Link>
+  ) : onBack ? (
+    <button type="button" onClick={onBack} className={backClass}>
+      <ChevronLeft className="size-5" aria-hidden />
+      {t('back')}
+    </button>
+  ) : null;
   return (
     <div className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-border-strong bg-surface pt-3">
-      <div className="mx-auto max-w-3xl px-4 pb-safe">{children}</div>
+      <div className="mx-auto flex max-w-3xl gap-2 px-4 pb-safe">
+        {back}
+        {children && <div className="min-w-0 flex-1">{children}</div>}
+      </div>
     </div>
   );
 }

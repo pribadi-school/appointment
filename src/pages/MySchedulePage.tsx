@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
-import { CalendarX2, MapPin, MessageCircle, Plus } from 'lucide-react';
+import { CalendarX2, ChevronLeft, MapPin, MessageCircle, Plus } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { Header } from '../components/Header';
 import { useToast } from '../components/Toast';
@@ -228,6 +228,14 @@ export function MySchedulePage() {
             </button>
           </>
         )}
+
+        {/* Always a clear way back to the start (greeting + level choice). */}
+        <div className="mt-10 border-t border-border-strong pt-6">
+          <Link to="/" className={buttonClass('secondary', 'md', true)}>
+            <ChevronLeft className="size-5" aria-hidden />
+            {t('backHome')}
+          </Link>
+        </div>
       </main>
 
       <BottomSheet

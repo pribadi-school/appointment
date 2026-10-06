@@ -106,7 +106,7 @@ export function ConfirmStep({ flow }: { flow: Flow }) {
         </div>
       )}
 
-      <StickyBar>
+      <StickyBar onBack={() => window.history.back()}>
         <Button block loading={busy} onClick={book}>
           {busy ? t('c_booking') : t('c_bookNow')}
         </Button>

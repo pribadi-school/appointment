@@ -161,7 +161,7 @@ export function TimeStep({ flow }: { flow: Flow }) {
 
       {busyAt.size > 0 && <p className="mt-5 text-sm text-muted-foreground">{t('time_busyHint')}</p>}
 
-      <StickyBar>
+      <StickyBar onBack={() => window.history.back()}>
         <Button block disabled={!flow.slotStart} onClick={() => flow.go('confirm')}>
           {flow.slotStart ? t('time_continue', { time: fmtTime(flow.slotStart) }) : t('time_pick')}
         </Button>

@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.json && vite build",
     "preview": "vite preview",
+    "deploy": "node scripts/publish-deploy.ts",
     "typecheck": "tsc -p tsconfig.json",
     "seed:generate": "node scripts/generate-seed.ts",
     "db:setup": "node scripts/db-setup.ts",

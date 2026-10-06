@@ -99,17 +99,34 @@ The setup adds the `slot_status`, `teachers` and `settings` tables to Supabase
 Realtime. To check, go to Supabase → Database → Publications →
 `supabase_realtime`; all three should be listed.
 
-### 5. Deploy to Vercel
+### 5. Put it online (cPanel, report.pribadidepok.sch.id)
 
-1. Push this folder to a GitHub repository.
-2. On https://vercel.com, click **Add New → Project** and import the repository.
-   The framework is detected as **Vite**.
-3. Under **Environment Variables**, add `VITE_SUPABASE_URL` and
-   `VITE_SUPABASE_ANON_KEY`. These are the only two Vercel needs.
-4. Click Deploy. `vercel.json` already makes links like `/board` work on refresh.
+The site is served from the school's cPanel at `public_html/report`. cPanel
+can't build the app, so the built files live on a separate GitHub branch,
+`deploy`, which cPanel pulls.
 
-Netlify, Cloudflare Pages and others work too: build command `npm run build`,
-output folder `dist`, and add an SPA fallback to `index.html`.
+**Each release**
+
+1. Commit and push your changes to `main`.
+2. Run `npm run deploy`. It checks `.env` has the real Supabase keys, builds,
+   and pushes the build to the `deploy` branch.
+3. cPanel → **Git™ Version Control** → **Manage** → **Pull or Deploy** →
+   **Update from Remote**, then **Deploy HEAD Commit**. The `.cpanel.yml` in
+   the branch copies the files into `public_html/report`.
+
+**One-time setup in cPanel**
+
+1. **Git™ Version Control** → **Create**.
+2. Clone a Repository: on. Clone URL:
+   `https://github.com/pribadi-school/appointment.git`
+3. Repository Path: `repositories/appointment` (outside `public_html`).
+4. Create, then **Manage** → **Basic Information** → Checked-Out Branch:
+   `deploy` → Update.
+5. **Pull or Deploy** → **Deploy HEAD Commit**.
+
+The `.htaccess` in the build makes links like `/board` work on refresh.
+Other hosts work too: build command `npm run build`, output folder `dist`,
+and an SPA fallback to `index.html`.
 
 ### 6. Before the day (from the Admin page, no code)
 

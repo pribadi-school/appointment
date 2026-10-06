@@ -76,18 +76,26 @@ to rebuild `supabase/seed.sql`. Never hand-edit seed.sql.
 
 ## Hosting
 
-Hosted on the school's own Hostinger account as **report.pribadidepok.sch.id**
-(subdomain folder `public_html/report`), not on Vercel. The database stays on
-Supabase. There is no git deploy for it: the build is uploaded by hand.
+Hosted on the school's cPanel (Niagahoster, user `pribadisch`) as
+**report.pribadidepok.sch.id** (subdomain folder `public_html/report`), not on
+Vercel. The database stays on Supabase.
+
+cPanel can't build, so built files go on a separate branch, `deploy`
+(generated — never edit it by hand). cPanel's Git™ Version Control clones
+the repo into `~/repositories/appointment`, checked out on `deploy`; its
+`.cpanel.yml` copies the files into `public_html/report`.
 
 To release a change:
-1. `.env` must have the real `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`
-   *before* building — Vite bakes them into the files. Built with them empty,
-   the live site silently runs in demo mode (nothing shared between phones).
-2. `npm run build`, then zip the *contents* of `dist/` (including the hidden
-   `.htaccess`, which makes /board, /admin work on refresh).
-3. Hostinger File Manager → `public_html/report` → upload the zip → Extract
-   (overwrite) → delete the zip.
+1. Commit and push to `main` (`npm run deploy` refuses a dirty tree).
+2. `npm run deploy` (`scripts/publish-deploy.ts`): checks `.env` has the real
+   `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` — Vite bakes them into the
+   files, and built with them empty the live site silently runs in demo mode —
+   then builds and pushes `dist/` + `.cpanel.yml` to `deploy`.
+3. cPanel → Git™ Version Control → Manage → Pull or Deploy → Update from
+   Remote → Deploy HEAD Commit.
+
+The `deploy` branch keeps linear history on purpose: cPanel's "Update from
+Remote" is a plain pull and fails on a force-pushed branch.
 
 Supabase free projects pause after 7 days without activity: open the
 Supabase dashboard a few days before the event and resume it if paused.

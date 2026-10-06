@@ -30,7 +30,7 @@ Nur Amira Nugroho ; Turkish ; 11 ; Mothers Club
 Ujang Irpan, S.Pd. ; Mathematics ; 11,12 ; Olympiad Coordinator
 Antinah ; Physics - Mathematics ; 8,10 ; Olympiad Coordinator
 Reza Audia ; PPKn ; 9,10 ; OSIS Coordinator (Female)
-Siti Masitoh, S.Mat ; Mathematics ; 7 ; School Culture
+Siti Masitoh, S.Mat ; Mathematics ; 7 ; School Culture (Girls)
 Bibit Wiyana, M.Pd. ; PPKn ; 11,12 ; SMA Principal
 Biadelma Nanda Illiandi, B.Sc., M.Sc. ; Physics ; 9 ; SMP Principal
 Midyeal Fioleta, M.Pd. ; Bahasa Indonesia ; 7,9 ; -
@@ -44,7 +44,7 @@ Dhona Chindy Ferdiana ; Physical Education (Female) ; 7,8,9,10,11,12 ; -
 Ewa Hilal Kamaluddin, S.Pd. ; Physical Education (Male) ; 7,8,9,10,11,12 ; -
 Sutirto, S.Si., MT. ; Physics - Mathematics ; 9,11,12 ; -
 Qobul Imron Rosada, S.Sos. ; PPKn ; - ; -
-Muslim Mughofar, S.E. ; PPKn - History ; - ; -
+Muslim Mughofar, S.E. ; PPKn - History ; - ; School Culture (Boys)
 `;
 
 /** Teachers seeded as not available (hidden from parents). */

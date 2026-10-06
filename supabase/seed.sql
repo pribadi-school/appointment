@@ -24,7 +24,7 @@ select * from (values
   ('Ujang Irpan, S.Pd.', 'Mathematics', '{11,12}'::int[], 'Olympiad Coordinator', null, true, 'Mathematics Room', true, 18),
   ('Antinah', 'Physics - Mathematics', '{8,10}'::int[], 'Olympiad Coordinator', null, true, 'Mathematics Room', true, 19),
   ('Reza Audia', 'PPKn', '{9,10}'::int[], 'OSIS Coordinator (Female)', null, true, 'Social Studies Room', true, 20),
-  ('Siti Masitoh, S.Mat', 'Mathematics', '{7}'::int[], 'School Culture', null, false, 'Mathematics Room', true, 21),
+  ('Siti Masitoh, S.Mat', 'Mathematics', '{7}'::int[], 'School Culture (Girls)', null, false, 'Mathematics Room', true, 21),
   ('Bibit Wiyana, M.Pd.', 'PPKn', '{11,12}'::int[], 'SMA Principal', null, true, 'Social Studies Room', true, 22),
   ('Biadelma Nanda Illiandi, B.Sc., M.Sc.', 'Physics', '{9}'::int[], 'SMP Principal', null, true, 'Science Lab', true, 23),
   ('Midyeal Fioleta, M.Pd.', 'Bahasa Indonesia', '{7,9}'::int[], null, null, false, 'Language Room', true, 24),
@@ -38,7 +38,7 @@ select * from (values
   ('Ewa Hilal Kamaluddin, S.Pd.', 'Physical Education (Male)', '{7,8,9,10,11,12}'::int[], null, null, false, 'Sports Hall', true, 32),
   ('Sutirto, S.Si., MT.', 'Physics - Mathematics', '{9,11,12}'::int[], null, null, false, 'Mathematics Room', true, 33),
   ('Qobul Imron Rosada, S.Sos.', 'PPKn', '{}'::int[], null, null, false, 'Social Studies Room', true, 34),
-  ('Muslim Mughofar, S.E.', 'PPKn - History', '{}'::int[], null, null, false, 'Social Studies Room', true, 35),
+  ('Muslim Mughofar, S.E.', 'PPKn - History', '{}'::int[], 'School Culture (Boys)', null, false, 'Social Studies Room', true, 35),
   ('Selvia Noviani, S.Pd.', 'Art', '{}'::int[], null, null, false, 'Arts Room', false, 36),
   ('Muhammad Ishaq Nurdin', 'Mathematics', '{}'::int[], null, null, false, 'Mathematics Room', false, 37),
   ('Triyanda, S.Pd.', 'Religion', '{}'::int[], null, null, false, 'Religion Room', false, 38)

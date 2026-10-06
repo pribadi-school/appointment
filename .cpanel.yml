@@ -1,7 +1,0 @@
----
-deployment:
-  tasks:
-    - export DEPLOYPATH=/home/pribadisch/public_html/report/
-    - /bin/mkdir -p $DEPLOYPATH
-    - /bin/rm -rf $DEPLOYPATH/assets
-    - /bin/cp -R ./* ./.htaccess $DEPLOYPATH

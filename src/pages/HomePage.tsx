@@ -23,42 +23,39 @@ export function HomePage() {
   return (
     <div className="min-h-dvh">
       <Header />
-      <main className="mx-auto max-w-3xl px-4 pt-5 pb-16">
-        <h1 className="text-[26px] leading-tight font-extrabold text-foreground">{t('home_hello')}</h1>
-        <p className="mt-2 text-[15px] text-muted-foreground">{t('home_body')}</p>
+      <main className="mx-auto max-w-3xl px-4 pt-6 pb-16">
+        <h1 className="text-[28px] leading-tight font-bold text-foreground">{t('home_hello')}</h1>
+        <p className="mt-2 text-base leading-relaxed text-muted-foreground">{t('home_body')}</p>
 
         {loading || !settings ? (
-          <Skeleton className="mt-4 h-6 w-56 rounded-md" />
+          <Skeleton className="mt-4 h-11 rounded-md" />
         ) : (
-          <p className="mt-3 flex items-center gap-2 text-sm font-bold text-foreground">
-            <CalendarDays className="size-4 text-action" aria-hidden />
+          <p className="mt-4 flex min-h-11 items-center gap-3 rounded-md border border-border-strong bg-surface px-4 text-base font-semibold text-foreground">
+            <CalendarDays className="size-5 shrink-0 text-action" aria-hidden />
             {fmtDate(settings.eventDate, lang)}
           </p>
         )}
 
-        <h2 className="mt-6 mb-3 text-lg font-bold text-foreground">{t('home_choose')}</h2>
-        <ul className="grid gap-3 sm:grid-cols-2">
+        <h2 className="mt-8 mb-3 text-lg font-bold text-foreground">{t('home_choose')}</h2>
+        <ul className="divide-y divide-border-strong overflow-hidden rounded-lg border border-border-strong bg-surface sm:grid sm:grid-cols-2 sm:divide-x sm:divide-y-0">
           {LEVELS.map(({ level, to, title, sub, icon: Icon }) => {
             const sch = settings ? scheduleFor(settings, level) : null;
             return (
               <li key={level}>
-                <Link
-                  to={to}
-                  className="group flex items-center gap-3.5 rounded-lg bg-surface p-4 shadow-e1 ring-1 ring-border transition-[box-shadow,transform] duration-250 hover:-translate-y-0.5 hover:shadow-e3 active:scale-[0.99]"
-                >
-                  <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-linear-135 from-gradient-start to-gradient-end text-on-primary shadow-e1" aria-hidden>
+                <Link to={to} className="flex h-full items-center gap-4 px-4 py-4 transition-colors duration-150 hover:bg-surface-page active:bg-surface-muted">
+                  <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-md bg-action-tint text-action" aria-hidden>
                     <Icon className="size-6" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[17px] leading-snug font-bold text-foreground">{t(title)}</span>
-                    <span className="block text-[13px] font-medium text-muted-foreground">{t(sub)}</span>
+                    <span className="block text-lg leading-snug font-semibold text-foreground">{t(title)}</span>
+                    <span className="block text-sm text-muted-foreground">{t(sub)}</span>
                     {sch && (
-                      <span className="mt-0.5 block text-[12px] text-muted-foreground tabular-nums">
+                      <span className="mt-1 block text-sm font-medium text-action tabular-nums">
                         {t('lvl_times', { start: sch.dayStart.replace(':', '.'), end: sch.dayEnd.replace(':', '.'), n: sch.slotMinutes })}
                       </span>
                     )}
                   </span>
-                  <ChevronRight className="size-5 shrink-0 text-action transition-transform duration-250 group-hover:translate-x-0.5" aria-hidden />
+                  <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
                 </Link>
               </li>
             );
@@ -74,7 +71,7 @@ export function HomePage() {
           </div>
         )}
 
-        <div className="mt-8 flex flex-wrap justify-center gap-3 border-t border-border pt-6">
+        <div className="mt-10 grid gap-2 border-t border-border-strong pt-6 sm:flex sm:justify-center">
           <Link to="/my" className={buttonClass('secondary', 'md')}>
             <CalendarCheck className="size-5" aria-hidden />
             {t('nav_mySchedule')}

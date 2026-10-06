@@ -38,7 +38,7 @@ export function QrTab() {
         <SchoolLogo className="mx-auto h-16" />
         <p className="mt-5 text-sm font-bold text-foreground">{t('appName')}</p>
         <h2 className="mt-1 text-2xl font-extrabold">{t('a_qr_title')}</h2>
-        {settings && <p className="mt-1 text-[15px] font-semibold text-accent">{fmtDate(settings.eventDate, lang)}</p>}
+        {settings && <p className="mt-1 text-base font-semibold text-accent">{fmtDate(settings.eventDate, lang)}</p>}
         <div className="mx-auto mt-6 w-full max-w-[300px] [&_svg]:h-auto [&_svg]:w-full" role="img" aria-label={`QR: ${url}`} dangerouslySetInnerHTML={{ __html: svg }} />
         <p className="mt-4 font-mono text-sm font-semibold break-all text-foreground">{url}</p>
         <p className="mt-1 text-sm text-muted-foreground">{t('a_qr_sub')}</p>

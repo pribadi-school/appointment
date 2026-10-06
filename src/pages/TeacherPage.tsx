@@ -9,7 +9,7 @@ import { Ban, Check, ChevronDown, MapPin, MessageCircle, Search, Users, UserX } 
 import { BottomSheet } from '../components/BottomSheet';
 import { Header } from '../components/Header';
 import { useToast } from '../components/Toast';
-import { Avatar, Button, Card, Field, Notice, PulseDot, Skeleton, StatusPill, cx } from '../components/ui';
+import { Avatar, Button, Card, Field, Notice, PulseDot, Skeleton, StatusPill, buttonClass, cx } from '../components/ui';
 import { api } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { useLive, useNow } from '../lib/live';
@@ -71,7 +71,7 @@ function TeacherLogin({ onSignIn }: { onSignIn: (s: Session) => void }) {
       <Header title={t('nav_teacher')} />
       <main className="mx-auto max-w-md px-4 pt-8 pb-16">
         <h1 className="text-2xl font-bold">{t('tv_title')}</h1>
-        <p className="mt-1 mb-6 text-[15px] text-muted-foreground">{t('tv_intro')}</p>
+        <p className="mt-1 mb-6 text-base text-muted-foreground">{t('tv_intro')}</p>
         <form onSubmit={submit} className="space-y-5">
           <div>
             <span id="tname" className="mb-1.5 block text-sm font-semibold text-foreground">
@@ -83,9 +83,9 @@ function TeacherLogin({ onSignIn }: { onSignIn: (s: Session) => void }) {
               aria-haspopup="dialog"
               onClick={() => setSheet(true)}
               disabled={loading}
-              className="flex h-12 w-full items-center justify-between gap-2 rounded-md bg-surface px-4 text-left ring-1 ring-border-strong hover:ring-action"
+              className="flex h-12 w-full items-center justify-between gap-2 rounded-md border border-border-strong bg-surface px-4 text-left transition-colors duration-150 hover:border-action"
             >
-              <span id="tname-v" className={cx('truncate', teacher ? 'font-semibold text-foreground' : 'text-muted-foreground/70')}>
+              <span id="tname-v" className={cx('truncate', teacher ? 'font-semibold text-foreground' : 'text-muted-foreground')}>
                 {teacher?.name ?? t('tv_chooseName')}
               </span>
               <ChevronDown className="size-5 shrink-0 text-muted-foreground" aria-hidden />
@@ -112,7 +112,7 @@ function TeacherLogin({ onSignIn }: { onSignIn: (s: Session) => void }) {
         <div className="mt-10 flex justify-center border-t border-border pt-6">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 rounded-full border border-border-strong bg-surface px-5 py-2.5 text-[15px] font-semibold text-foreground hover:bg-surface-muted"
+            className={buttonClass('secondary', 'md')}
           >
             <Users className="size-5" aria-hidden />
             {t('imParent')}
@@ -129,7 +129,7 @@ function TeacherLogin({ onSignIn }: { onSignIn: (s: Session) => void }) {
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('tv_searchNames')}
             aria-label={t('tv_searchNames')}
-            className="h-11 w-full rounded-full bg-surface-page pr-3 pl-9 text-base outline-none focus:ring-2 focus:ring-action"
+            className="h-11 w-full rounded-md border border-border-strong bg-surface pr-3 pl-9 text-base outline-none focus:border-action focus:ring-1 focus:ring-action"
           />
         </div>
         <ul className="-mx-2">
@@ -225,7 +225,7 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
       <Header
         title={t('nav_teacher')}
         right={
-          <button type="button" onClick={onSignOut} className="inline-flex h-9 items-center justify-center rounded-full border border-border-strong px-4 text-sm font-semibold text-foreground hover:bg-surface-page">
+          <button type="button" onClick={onSignOut} className={buttonClass('secondary', 'sm')}>
             {t('tv_signOut')}
           </button>
         }
@@ -261,16 +261,16 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
                   ref={isNow ? currentRow : undefined}
                   aria-current={isNow ? 'time' : undefined}
                   className={cx(
-                    'flex items-start gap-3 rounded-lg bg-surface px-3 ring-1 transition-shadow duration-250',
+                    'flex items-start gap-3 rounded-lg border bg-surface px-3 transition-colors duration-150',
                     b?.kind === 'booking' ? 'py-3' : 'py-2',
-                    isNow ? 'shadow-e3 ring-2 ring-gradient-end' : 'shadow-e1 ring-border',
+                    isNow ? 'border-2 border-gradient-end' : 'border-border-strong',
                     past && !isNow && 'opacity-75',
                   )}
                 >
                   <div className="w-[62px] shrink-0 pt-0.5">
-                    <p className={cx('text-[15px] font-extrabold tabular-nums', isNow ? 'text-foreground' : 'text-action')}>{fmtRange(s, minutes).split(' – ')[0]}</p>
+                    <p className={cx('text-base font-extrabold tabular-nums', isNow ? 'text-foreground' : 'text-action')}>{fmtRange(s, minutes).split(' – ')[0]}</p>
                     {isNow && (
-                      <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-bold text-foreground uppercase">
+                      <p className="mt-0.5 inline-flex items-center gap-1 text-xs font-bold text-foreground uppercase">
                         <PulseDot /> {t('tv_now')}
                       </p>
                     )}
@@ -289,14 +289,14 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
                         <p className="font-bold text-foreground">
                           {b.childName} <span className="font-semibold text-muted-foreground">· {classLabel(b.childClass, t)}</span>
                         </p>
-                        <p className="text-[13px] text-muted-foreground">{b.parentName}</p>
+                        <p className="text-sm text-muted-foreground">{b.parentName}</p>
                         {b.phone ? (
-                          <a href={waLink(b.phone)} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-[13px] font-semibold text-action hover:underline" aria-label={`${t('tv_chat')}: ${formatPhone(b.phone)}`}>
+                          <a href={waLink(b.phone)} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-action hover:underline" aria-label={`${t('tv_chat')}: ${formatPhone(b.phone)}`}>
                             <MessageCircle className="size-3.5" aria-hidden />
                             {formatPhone(b.phone)}
                           </a>
                         ) : (
-                          <p className="mt-1 text-[13px] text-muted-foreground">{t('tv_noPhone')}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{t('tv_noPhone')}</p>
                         )}
                         <div className="mt-2.5 flex flex-wrap items-center gap-2">
                           {b.status === 'booked' ? (

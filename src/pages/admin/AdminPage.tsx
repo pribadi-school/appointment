@@ -141,13 +141,13 @@ function AdminShell({ token, onSignOut }: { token: string; onSignOut: () => void
           title={t('a_title')}
           wide
           right={
-            <button type="button" onClick={onSignOut} aria-label={t('a_signOut')} className="inline-flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-page">
+            <button type="button" onClick={onSignOut} aria-label={t('a_signOut')} className="inline-flex size-10 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-surface-page hover:text-foreground">
               <LogOut className="size-[18px]" aria-hidden />
             </button>
           }
         />
-        <nav aria-label={t('a_title')} className="no-print sticky top-14 z-30 border-b border-border bg-surface-page/90 backdrop-blur-md">
-          <div className="mx-auto flex max-w-[1600px] gap-1 overflow-x-auto px-4 py-2 xl:px-8" role="tablist">
+        <nav aria-label={t('a_title')} className="no-print sticky top-16 z-30 border-b border-border-strong bg-surface sm:top-[72px]">
+          <div className="mx-auto flex max-w-[1600px] gap-1 overflow-x-auto px-4 xl:px-8" role="tablist">
             {tabs.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -156,8 +156,9 @@ function AdminShell({ token, onSignOut }: { token: string; onSignOut: () => void
                 aria-selected={tab === id}
                 onClick={() => setTab(id)}
                 className={cx(
-                  'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-[background-color,color,box-shadow] duration-250',
-                  tab === id ? 'bg-surface text-foreground shadow-e1 ring-1 ring-border' : 'text-muted-foreground hover:text-foreground',
+                  // Underline tabs: the selected tab gets a 2px brand-blue bar, not a floating pill.
+                  'inline-flex h-12 shrink-0 items-center gap-1.5 border-b-2 px-3 text-sm font-semibold transition-colors duration-150',
+                  tab === id ? 'border-action text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground',
                 )}
               >
                 <Icon className="size-4" aria-hidden />

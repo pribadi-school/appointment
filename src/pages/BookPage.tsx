@@ -140,42 +140,34 @@ export function BookPage({ level }: { level: Level }) {
   return (
     <div className="min-h-dvh">
       <Header />
-      <main className="mx-auto max-w-3xl px-4 pt-4 pb-36">
-        {step === 'details' && (
-          // First page of the level: the app name + chosen level as the page title.
-          <div className="mb-6 pt-1">
-            <Link to="/" className="-ml-1 mb-2 inline-flex items-center gap-1 rounded-full px-1 text-sm font-semibold text-action hover:underline">
-              <ChevronLeft className="size-4" aria-hidden />
-              {t('changeLevel')}
-            </Link>
-            <h1 className="text-[28px] leading-tight font-extrabold text-foreground">{t('appName')}</h1>
-            <p className="mt-1 text-[15px] font-medium text-muted-foreground">
-              {t(level === 'sd' ? 'lvl_sd' : 'lvl_smp')} · {t(level === 'sd' ? 'lvl_sdSub' : 'lvl_smpSub')}
-            </p>
-          </div>
-        )}
+      <main className="mx-auto max-w-3xl px-4 pt-3 pb-36">
         {step !== 'done' && (
-          <div ref={heading} tabIndex={-1} className="mb-5 outline-none">
-            <div className="flex items-center gap-2">
-              {index > 0 && (
+          <div ref={heading} tabIndex={-1} className="mb-6 outline-none">
+            <div className="flex items-start gap-1">
+              {/* Back: step 1 returns to the level choice, later steps go back one step. */}
+              {index === 0 ? (
+                <Link
+                  to="/"
+                  aria-label={t('changeLevel')}
+                  className="-ml-2.5 inline-flex size-11 shrink-0 items-center justify-center rounded-md text-foreground transition-colors duration-150 hover:bg-surface"
+                >
+                  <ChevronLeft className="size-6" aria-hidden />
+                </Link>
+              ) : (
                 <button
                   type="button"
                   onClick={() => window.history.back()}
                   aria-label={t('back')}
-                  className="-ml-2 inline-flex size-10 items-center justify-center rounded-full text-foreground hover:bg-surface"
+                  className="-ml-2.5 inline-flex size-11 shrink-0 items-center justify-center rounded-md text-foreground transition-colors duration-150 hover:bg-surface"
                 >
                   <ChevronLeft className="size-6" aria-hidden />
                 </button>
               )}
-              <div className="min-w-0">
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                  {t('stepOf', { n: index + 1, total: STEPS.length })}
+              <div className="min-w-0 pt-0.5">
+                <p className="text-sm font-medium text-muted-foreground">
+                  {t(level === 'sd' ? 'lvl_sd' : 'lvl_smp')} · {t('stepOf', { n: index + 1, total: STEPS.length })}
                 </p>
-                {step === 'details' ? (
-                  <h2 className="text-2xl font-bold">{t(STEP_LABEL.details)}</h2>
-                ) : (
-                  <h1 className="text-2xl font-bold">{t(STEP_LABEL[step as Exclude<Step, 'done'>])}</h1>
-                )}
+                <h1 className="text-2xl leading-tight font-bold">{t(STEP_LABEL[step as Exclude<Step, 'done'>])}</h1>
               </div>
             </div>
             <div
@@ -184,17 +176,10 @@ export function BookPage({ level }: { level: Level }) {
               aria-valuemax={STEPS.length}
               aria-valuenow={index + 1}
               aria-valuetext={`${t('stepOf', { n: index + 1, total: STEPS.length })}: ${t(STEP_LABEL[step as Exclude<Step, 'done'>])}`}
-              className={cx('mt-3 grid gap-1.5', STEPS.length === 3 ? 'grid-cols-3' : 'grid-cols-4')}
+              className={cx('mt-4 grid gap-1', STEPS.length === 3 ? 'grid-cols-3' : 'grid-cols-4')}
             >
               {STEPS.map((s, i) => (
-                <span key={s} className="h-1.5 overflow-hidden rounded-full bg-surface-muted">
-                  <span
-                    className={cx(
-                      'block h-full origin-left rounded-full bg-linear-90 from-gradient-start to-primary transition-transform duration-300 ease-out-cubic',
-                      i <= index ? 'scale-x-100' : 'scale-x-0',
-                    )}
-                  />
-                </span>
+                <span key={s} className={cx('h-1 rounded-full transition-colors duration-200', i <= index ? 'bg-action' : 'bg-border-strong')} />
               ))}
             </div>
           </div>

@@ -21,7 +21,7 @@ function Row({ icon, label, children }: { icon: ReactNode; label: string; childr
       </span>
       <div className="min-w-0 flex-1">
         <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-        <dd className="mt-0.5 text-[15px] font-semibold text-foreground">{children}</dd>
+        <dd className="mt-0.5 text-base font-semibold text-foreground tabular-nums">{children}</dd>
       </div>
     </div>
   );
@@ -70,17 +70,17 @@ export function ConfirmStep({ flow }: { flow: Flow }) {
   return (
     <>
       <Card className="overflow-hidden">
-        <div className="flex items-center gap-3 border-b border-border bg-linear-135 from-action-tint to-surface p-4">
+        <div className="flex items-center gap-3 border-b border-border-strong p-4">
           <Avatar text={avatarText(teacher)} size="lg" />
           <div className="min-w-0">
             <p className="text-xs font-medium text-muted-foreground">
               {flow.level === 'sd' ? `${t('sd_teachers')} · ${classLabel(teacher.homeroomClass, t)}` : t('c_teacher')}
             </p>
-            <p className="text-lg leading-snug font-bold text-foreground">{teacher.name}</p>
+            <p className="text-lg leading-snug font-semibold text-foreground">{teacher.name}</p>
             {teacher.subject && <p className="text-sm text-muted-foreground">{teacher.subject}</p>}
           </div>
         </div>
-        <dl className="divide-y divide-border px-4">
+        <dl className="divide-y divide-border-strong px-4">
           <Row icon={<Clock className="size-[18px]" />} label={t('c_time')}>
             <span className="tabular-nums">{fmtRange(flow.slotStart, minutesFor(settings, teacher.level))}</span>
           </Row>
@@ -91,7 +91,7 @@ export function ConfirmStep({ flow }: { flow: Flow }) {
             {teacher.room ?? t('roomTbc')}
           </Row>
           <Row icon={<User className="size-[18px]" />} label={t('c_for')}>
-            <span className="text-accent">{d.childName}</span> · {classLabel(d.childClass, t)}
+            {d.childName} · {classLabel(d.childClass, t)}
             <span className="mt-0.5 block text-sm font-normal text-muted-foreground">
               {d.parentName} · {formatPhone(normalizePhone(d.phone))}
             </span>
@@ -99,7 +99,7 @@ export function ConfirmStep({ flow }: { flow: Flow }) {
         </dl>
       </Card>
 
-      <p className="mt-4 px-1 text-[13px] text-muted-foreground">{t('c_note')}</p>
+      <p className="mt-4 px-1 text-sm text-muted-foreground">{t('c_note')}</p>
       {error && (
         <div className="mt-4">
           <Notice tone="error">{errorText(error)}</Notice>

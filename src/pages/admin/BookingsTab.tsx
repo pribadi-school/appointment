@@ -45,7 +45,7 @@ export function BookingsTab() {
             onChange={(e) => setQ(e.target.value)}
             placeholder={t('a_searchBookings')}
             aria-label={t('a_searchBookings')}
-            className="h-11 w-full rounded-full bg-surface pr-3 pl-10 text-base ring-1 ring-border-strong outline-none focus:ring-2 focus:ring-action"
+            className="h-11 w-full rounded-md border border-border-strong bg-surface pr-3 pl-10 text-base outline-none focus:border-action focus:ring-1 focus:ring-action"
           />
         </div>
         <Button size="sm" variant="secondary" icon={<Download className="size-4" aria-hidden />} onClick={() => exportCsv(bookings, teachers, settings, t, lang)}>

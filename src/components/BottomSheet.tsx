@@ -76,8 +76,8 @@ export function BottomSheet({ open, onClose, title, children, footer, size = 'md
           size === 'md' ? 'sm:max-w-md' : 'sm:max-w-2xl',
         )}
       >
-        <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-border-strong sm:hidden" aria-hidden />
-        <div className="flex items-center justify-between gap-3 px-5 pt-3 pb-2 sm:pt-5">
+        <div className="mx-auto mt-2 h-1 w-9 rounded-full bg-border-strong sm:hidden" aria-hidden />
+        <div className="flex items-center justify-between gap-3 border-b border-border px-5 pt-2 pb-2 sm:pt-4">
           <h2 id={titleId} className="text-lg font-bold">
             {title}
           </h2>
@@ -85,12 +85,12 @@ export function BottomSheet({ open, onClose, title, children, footer, size = 'md
             type="button"
             onClick={onClose}
             aria-label={t('close')}
-            className="-mr-2 inline-flex size-10 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-page"
+            className="-mr-2 inline-flex size-11 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-surface-page hover:text-foreground"
           >
             <X className="size-5" aria-hidden />
           </button>
         </div>
-        <div className="overflow-y-auto overscroll-contain px-5 pb-5">{children}</div>
+        <div className="overflow-y-auto overscroll-contain px-5 pt-4 pb-5">{children}</div>
         {footer && <div className="border-t border-border px-5 pt-3 pb-safe">{footer}</div>}
       </div>
     </div>,

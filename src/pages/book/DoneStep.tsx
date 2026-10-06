@@ -12,26 +12,13 @@ import { fmtTime } from '../../lib/time';
 import { scheduleMessage, waLink } from '../../lib/whatsapp';
 import type { Flow } from '../BookPage';
 
-/** Animated check in a brand-gradient badge, with a small burst. */
+/** Flat success mark: solid brand circle, the check draws in once (static under reduced motion). */
 export function SuccessMark() {
-  const dots = Array.from({ length: 10 }, (_, i) => {
-    const a = (i / 10) * Math.PI * 2;
-    return { dx: `${Math.cos(a) * 64}px`, dy: `${Math.sin(a) * 64}px`, accent: i % 3 === 0 };
-  });
   return (
-    <div className="relative mx-auto size-24" aria-hidden>
-      {dots.map((d, i) => (
-        <span
-          key={i}
-          className={`burst-dot absolute top-1/2 left-1/2 -mt-1 -ml-1 size-2 rounded-full ${d.accent ? 'bg-accent' : 'bg-primary'}`}
-          style={{ '--dx': d.dx, '--dy': d.dy } as React.CSSProperties}
-        />
-      ))}
-      <div className="relative flex size-24 animate-pop items-center justify-center rounded-[28px] bg-linear-135 from-gradient-start to-gradient-end shadow-e4">
-        <svg viewBox="0 0 24 24" className="size-12" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
-          <path className="check-draw text-on-primary" d="M5 12.5l4.5 4.5L19 7.5" />
-        </svg>
-      </div>
+    <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-action" aria-hidden>
+      <svg viewBox="0 0 24 24" className="size-9" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+        <path className="check-draw text-on-primary" d="M5 12.5l4.5 4.5L19 7.5" />
+      </svg>
     </div>
   );
 }
@@ -55,27 +42,27 @@ export function DoneStep({ flow }: { flow: Flow }) {
   if (!teacher || !slot || !flow.result) return null;
 
   return (
-    <div className="pt-6 text-center">
+    <div className="pt-4 text-center">
       <SuccessMark />
-      <h1 className="mt-6 text-3xl font-extrabold">{t('done_title')}</h1>
-      <p className="mx-auto mt-2 max-w-sm text-[15px] text-muted-foreground" role="status">
+      <h1 className="mt-4 text-2xl font-bold">{t('done_title')}</h1>
+      <p className="mx-auto mt-2 max-w-sm text-base text-muted-foreground" role="status">
         {t('done_sub', { time: fmtTime(slot), room: teacher.room ?? t('roomTbc') })}
       </p>
 
-      <Card className="mx-auto mt-6 max-w-sm p-5 text-left">
-        <p className="text-sm font-bold text-foreground">{teacher.name}</p>
-        <p className="text-[13px] text-muted-foreground">
-          {teacher.subject ?? t('sd_teachers')} · <span className="font-semibold text-accent">{flow.details.childName}</span> (
+      <Card className="mx-auto mt-6 max-w-sm p-4 text-left">
+        <p className="text-base leading-snug font-semibold text-foreground">{teacher.name}</p>
+        <p className="text-sm text-muted-foreground">
+          {teacher.subject ?? t('sd_teachers')} · <span className="font-semibold text-foreground">{flow.details.childName}</span> (
           {classLabel(flow.details.childClass, t)})
         </p>
-        <div className="mt-4 flex items-end justify-between border-t border-border pt-4">
+        <div className="mt-4 flex items-end justify-between border-t border-border-strong pt-4">
           <div>
-            <p className="text-xs font-medium text-muted-foreground">{t('done_code')}</p>
+            <p className="text-sm text-muted-foreground">{t('done_code')}</p>
             <p className="font-mono text-2xl font-bold tracking-[0.2em] text-foreground" data-testid="booking-code">
               {flow.result.code}
             </p>
           </div>
-          <p className="text-2xl font-extrabold text-action tabular-nums">{fmtTime(slot)}</p>
+          <p className="text-2xl font-bold text-action tabular-nums">{fmtTime(slot)}</p>
         </div>
       </Card>
 

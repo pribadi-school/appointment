@@ -70,17 +70,16 @@ export function DetailsStep({ flow }: { flow: Flow }) {
       {loading || !settings || !sch ? (
         <Skeleton className="mb-5 h-20 rounded-lg" />
       ) : (
-        <Card className="mb-5 flex items-center gap-4 p-4">
-          <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-[12px] bg-action-tint text-action" aria-hidden>
-            <CalendarDays className="size-5" />
-          </span>
-          <div className="min-w-0 text-sm">
-            <p className="font-bold text-foreground">{fmtDate(settings.eventDate, lang)}</p>
-            <p className="mt-0.5 flex items-center gap-1.5 text-muted-foreground">
-              <Clock className="size-3.5" aria-hidden />
-              {sch.dayStart.replace(':', '.')} – {sch.dayEnd.replace(':', '.')} · {t('minutes', { n: sch.slotMinutes })}
-            </p>
-          </div>
+        <Card className="mb-5 divide-y divide-border-strong">
+          <p className="flex items-center gap-3 px-4 py-3 text-base font-semibold text-foreground">
+            <CalendarDays className="size-5 shrink-0 text-action" aria-hidden />
+            {fmtDate(settings.eventDate, lang)}
+          </p>
+          <p className="flex items-center gap-3 px-4 py-3 text-base text-foreground tabular-nums">
+            <Clock className="size-5 shrink-0 text-action" aria-hidden />
+            {sch.dayStart.replace(':', '.')} – {sch.dayEnd.replace(':', '.')}
+            <span className="text-muted-foreground">· {t('minutes', { n: sch.slotMinutes })}</span>
+          </p>
         </Card>
       )}
 
@@ -119,7 +118,7 @@ export function DetailsStep({ flow }: { flow: Flow }) {
       )}
 
       {sch && !closed && (
-        <p className="mb-5 text-[15px] text-muted-foreground">
+        <p className="mb-5 text-base text-muted-foreground">
           {t(flow.level === 'sd' ? 'intro_sd' : 'intro', { minutes: sch.slotMinutes })}
         </p>
       )}
@@ -157,11 +156,11 @@ export function DetailsStep({ flow }: { flow: Flow }) {
             aria-haspopup="dialog"
             aria-invalid={errors.childClass ? true : undefined}
             className={cx(
-              'flex h-12 w-full items-center justify-between rounded-md bg-surface px-4 text-left text-base ring-1 transition-shadow duration-200',
-              errors.childClass ? 'ring-destructive' : 'ring-border-strong hover:ring-action',
+              'flex h-12 w-full items-center justify-between rounded-md border bg-surface px-4 text-left text-base transition-colors duration-150',
+              errors.childClass ? 'border-destructive' : 'border-border-strong hover:border-action',
             )}
           >
-            <span id="class-value" className={form.childClass ? 'font-semibold text-foreground' : 'text-muted-foreground/70'}>
+            <span id="class-value" className={form.childClass ? 'font-semibold text-foreground' : 'text-muted-foreground'}>
               {form.childClass ? classLabel(form.childClass, t) : t('f_chooseClass')}
             </span>
             <ChevronDown className="size-5 text-muted-foreground" aria-hidden />
@@ -192,7 +191,7 @@ export function DetailsStep({ flow }: { flow: Flow }) {
             ]
         ).map((group) => (
           <div key={group.title} className="mb-4 last:mb-0">
-            <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{group.title}</p>
+            <p className="mb-2 text-sm font-semibold text-muted-foreground">{group.title}</p>
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {classesFor(flow.level).filter((c) => group.grades.includes(parseInt(c, 10))).map((c) => (
                 <button
@@ -205,10 +204,10 @@ export function DetailsStep({ flow }: { flow: Flow }) {
                     setSheet(false);
                   }}
                   className={cx(
-                    'h-12 rounded-md text-base font-bold transition-[background-color,box-shadow,transform] duration-200 active:scale-95',
+                    'h-12 rounded-md border text-base font-bold transition-colors duration-150',
                     form.childClass === c
-                      ? 'bg-action text-on-primary shadow-e2'
-                      : 'bg-surface text-foreground ring-1 ring-border-strong hover:ring-action',
+                      ? 'border-action bg-action text-on-primary'
+                      : 'border-border-strong bg-surface text-foreground hover:border-action hover:bg-action-tint',
                   )}
                 >
                   {classLabel(c, t)}

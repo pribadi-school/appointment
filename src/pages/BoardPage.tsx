@@ -76,7 +76,7 @@ export default function BoardPage() {
       <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 pt-4 pb-6 xl:px-8">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <Card className="flex items-center gap-3 px-4 py-3">
-            <span className="inline-flex size-10 items-center justify-center rounded-[12px] bg-action text-on-primary shadow-e1" aria-hidden>
+            <span className="inline-flex size-10 items-center justify-center rounded-md bg-action-tint text-action" aria-hidden>
               <Clock className="size-5" />
             </span>
             <div>
@@ -97,7 +97,7 @@ export default function BoardPage() {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t('search')}
                 aria-label={t('t_searchPh')}
-                className="h-10 w-full rounded-full bg-surface pr-3 pl-9 sm:w-44 text-sm ring-1 ring-border-strong outline-none focus:ring-2 focus:ring-action"
+                className="h-11 w-full rounded-md border border-border-strong bg-surface pr-3 pl-9 text-base outline-none focus:border-action focus:ring-1 focus:ring-action sm:w-52"
               />
             </div>
             <Segmented
@@ -213,8 +213,8 @@ function GridSection({ title, teachers, starts, minutes, now }: { title: string;
               {teachers.map((teacher) => (
                 <tr key={teacher.id}>
                   <th scope="row" className="sticky left-0 z-10 max-w-36 border-b border-border bg-surface px-3 py-1.5 text-left font-normal sm:max-w-56">
-                    <span className="block truncate text-[13px] font-bold text-foreground xl:text-sm">{teacher.name}</span>
-                    <span className="block truncate text-[11px] text-muted-foreground">{teacher.room ?? '—'}</span>
+                    <span className="block truncate text-sm font-bold text-foreground xl:text-sm">{teacher.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{teacher.room ?? '—'}</span>
                   </th>
                   {starts.map((s, i) => {
                     const st = state(teacher.id, s);
@@ -275,9 +275,9 @@ function RoomsView({ teachers, now }: { teachers: Teacher[]; now: number }) {
               return (
                 <li key={teacher.id} className="py-2.5">
                   <p className="truncate text-sm font-bold text-foreground">{teacher.name}</p>
-                  <div className="mt-1.5 grid grid-cols-2 gap-2 text-[13px]">
+                  <div className="mt-1.5 grid grid-cols-2 gap-2 text-sm">
                     <div className={cx('rounded-md px-2.5 py-1.5', nowEntry ? 'bg-status-progress-bg' : 'bg-surface-page', flash && 'animate-slot-flash')}>
-                      <p className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase">
+                      <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase">
                         {nowEntry && nowEntry.status === 'taken' && <PulseDot />}
                         {t('b_now_label')}
                       </p>
@@ -287,7 +287,7 @@ function RoomsView({ teachers, now }: { teachers: Teacher[]; now: number }) {
                       </p>
                     </div>
                     <div className="rounded-md bg-surface-page px-2.5 py-1.5">
-                      <p className="text-[11px] font-semibold text-muted-foreground uppercase">{t('b_next')}</p>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase">{t('b_next')}</p>
                       <p className="truncate font-bold text-foreground">
                         {nextStart ? (
                           <>

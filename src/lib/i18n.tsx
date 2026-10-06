@@ -52,7 +52,7 @@ const en = {
   imParent: "I'm a parent",
 
   // Home: greeting + level choice
-  home_hello: 'Welcome, parents! 👋',
+  home_hello: 'Welcome, parents',
   home_body: 'Thank you for coming to Report Card Day at Pribadi Depok. Book a short consultation with your child’s teachers — it takes less than a minute.',
   home_choose: 'Choose your child’s level',
   lvl_sd: 'Primary School',
@@ -380,7 +380,7 @@ const id: Record<MessageKey, string> = {
   imTeacher: 'Saya guru',
   imParent: 'Saya orang tua',
 
-  home_hello: 'Selamat datang, Bapak/Ibu! 👋',
+  home_hello: 'Selamat datang, Bapak/Ibu',
   home_body: 'Terima kasih telah hadir di Hari Pembagian Rapor Sekolah Pribadi Depok. Pesan waktu konsultasi singkat dengan guru putra-putri Anda — hanya butuh kurang dari satu menit.',
   home_choose: 'Pilih jenjang putra-putri Anda',
   lvl_sd: 'SD',

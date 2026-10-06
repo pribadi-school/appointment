@@ -62,7 +62,7 @@ export function TeachersTab() {
             onChange={(e) => setQ(e.target.value)}
             placeholder={t('a_t_search')}
             aria-label={t('a_t_search')}
-            className="h-11 w-full rounded-full bg-surface pr-3 pl-10 text-base ring-1 ring-border-strong outline-none focus:ring-2 focus:ring-action"
+            className="h-11 w-full rounded-md border border-border-strong bg-surface pr-3 pl-10 text-base outline-none focus:border-action focus:ring-1 focus:ring-action"
           />
         </div>
         <Segmented
@@ -89,12 +89,12 @@ export function TeachersTab() {
             <Avatar text={avatarText(x)} muted={!x.available} />
             <div className="min-w-0 flex-1">
               <p className="truncate font-bold text-foreground">{x.name}</p>
-              <p className="truncate text-[13px] text-muted-foreground">
+              <p className="truncate text-sm text-muted-foreground">
                 {x.level === 'sd'
                   ? `${t('lvl_sd')} · ${classLabel(x.homeroomClass, t)}`
                   : `${x.subject ?? '—'} · ${x.grades.length ? x.grades.join(', ') : '7–12'}`}
               </p>
-              <p className="truncate text-[13px] text-muted-foreground">
+              <p className="truncate text-sm text-muted-foreground">
                 <MapPin className="mr-0.5 inline size-3" aria-hidden />
                 {x.room ?? '—'}
                 {x.homeroomClass && x.level === 'smp_sma' && ` · ${t('a_t_homeroom')} ${x.homeroomClass}`}
@@ -108,7 +108,7 @@ export function TeachersTab() {
               type="button"
               onClick={() => setEditing(x)}
               aria-label={`${t('edit')}: ${x.name}`}
-              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-action hover:bg-action-tint"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-action transition-colors duration-150 hover:bg-action-tint"
             >
               <Pencil className="size-4" aria-hidden />
             </button>
@@ -221,7 +221,7 @@ function TeacherSheet({ teacher, onClose }: { teacher: Teacher; onClose: () => v
                   );
                 })}
               </div>
-              <p className="mt-1.5 text-[13px] text-muted-foreground">{t('a_t_gradesHint')}</p>
+              <p className="mt-1.5 text-sm text-muted-foreground">{t('a_t_gradesHint')}</p>
             </fieldset>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field

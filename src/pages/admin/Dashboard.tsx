@@ -20,7 +20,16 @@ export function Dashboard() {
   const [open, setOpen] = useState<{ teacherId: string; slotStart: number } | null>(null);
 
   const map = useMemo(() => new Map((bookings ?? []).map((b) => [`${b.teacherId}|${b.slotStart}`, b])), [bookings]);
-  const sorted = useMemo(() => [...teachers].sort((a, b) => Number(b.available) - Number(a.available) || a.name.localeCompare(b.name)), [teachers]);
+  // SD classes in grade order, teachers by name; unavailable last.
+  const sorted = useMemo(
+    () =>
+      [...teachers].sort(
+        (a, b) =>
+          Number(b.available) - Number(a.available) ||
+          (a.level === 'sd' && b.level === 'sd' ? (a.homeroomClass ?? '').localeCompare(b.homeroomClass ?? '') : a.name.localeCompare(b.name)),
+      ),
+    [teachers],
+  );
 
   if (!settings || !bookings) return <Skeleton className="h-[60vh] rounded-lg" />;
 
@@ -113,7 +122,7 @@ function LevelGrid({
     if (b.kind === 'blocked') return <Ban className="size-4" aria-hidden />;
     const tag = `${b.childClass}·${(b.childName ?? '?')[0]}`;
     return (
-      <span className="flex items-center gap-0.5 text-[10.5px] font-bold">
+      <span className="flex items-center gap-0.5 text-xs font-bold">
         {b.status === 'done' && <Check className="size-3" aria-hidden />}
         {b.status === 'no_show' && <UserX className="size-3" aria-hidden />}
         {tag}
@@ -152,8 +161,8 @@ function LevelGrid({
               {teachers.map((teacher) => (
                 <tr key={teacher.id} className={cx(!teacher.available && 'opacity-50')}>
                   <th scope="row" className="sticky left-0 z-10 max-w-40 border-b border-border bg-surface px-3 py-1.5 text-left font-normal sm:max-w-60">
-                    <span className="block truncate text-[13px] font-bold text-foreground">{teacher.name}</span>
-                    <span className="block truncate text-[11px] text-muted-foreground">
+                    <span className="block truncate text-sm font-bold text-foreground">{teacher.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
                       {teacher.level === 'sd' && `${classLabel(teacher.homeroomClass, t)} · `}
                       {teacher.available ? (teacher.room ?? '—') : t('a_t_unavailable')}
                     </span>
@@ -169,7 +178,7 @@ function LevelGrid({
                             b ? (b.kind === 'blocked' ? t('st_blocked') : `${b.childName} ${b.childClass}`) : t('st_available')
                           }`}
                           className={cx(
-                            'flex h-9 w-14 items-center justify-center rounded-[8px] transition-[box-shadow,transform] duration-200 hover:shadow-e2 hover:-translate-y-px',
+                            'flex h-9 w-14 items-center justify-center rounded-[8px] transition-[box-shadow,transform] duration-200',
                             !b && 'bg-status-available-bg ring-1 ring-inset ring-status-available-border',
                             b?.kind === 'blocked' && 'bg-status-taken-bg text-muted-foreground',
                             b?.kind === 'booking' && b.status === 'booked' && 'bg-action-tint text-action',

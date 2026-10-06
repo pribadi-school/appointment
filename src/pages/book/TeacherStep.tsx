@@ -1,6 +1,6 @@
 /** Step 2: homeroom teacher first, then teachers of the child's grade by subject, then leadership. */
 import { useMemo, useState } from 'react';
-import { ChevronRight, MapPin, Search, X } from 'lucide-react';
+import { Check, ChevronRight, MapPin, Search, X } from 'lucide-react';
 import { Avatar, Skeleton, StatusPill, cx } from '../../components/ui';
 import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
@@ -28,31 +28,35 @@ export function TeacherStep({ flow }: { flow: Flow }) {
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between gap-3 text-sm">
-        <p className="text-muted-foreground">
-          {t('t_for', { cls: flow.details.childClass })} · <span className="font-semibold text-accent">{flow.details.childName}</span>
+      <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-border-strong bg-surface px-4 py-2.5 text-sm">
+        <p className="min-w-0 text-muted-foreground">
+          {t('t_for', { cls: flow.details.childClass })} · <span className="font-semibold text-foreground">{flow.details.childName}</span>
         </p>
-        <button type="button" onClick={() => flow.go('details')} className="shrink-0 font-semibold text-action underline-offset-2 hover:underline">
+        <button
+          type="button"
+          onClick={() => flow.go('details')}
+          className="-mr-2 inline-flex min-h-11 shrink-0 items-center rounded-md px-2 font-semibold text-action transition-colors duration-150 hover:bg-action-tint"
+        >
           {t('edit')}
         </button>
       </div>
 
-      <div className="relative mb-5">
-        <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+      <div className="relative mb-6">
+        <Search className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('t_searchPh')}
           aria-label={t('t_searchPh')}
-          className="h-12 w-full rounded-full bg-surface pr-12 pl-12 text-base shadow-e1 ring-1 ring-border-strong outline-none placeholder:text-muted-foreground/70 focus:ring-2 focus:ring-action [&::-webkit-search-cancel-button]:hidden"
+          className="h-12 w-full rounded-md border border-border-strong bg-surface pr-12 pl-11 text-base outline-none placeholder:text-muted-foreground focus:border-action focus:ring-1 focus:ring-action [&::-webkit-search-cancel-button]:hidden"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery('')}
             aria-label={t('clearSearch')}
-            className="absolute top-1/2 right-2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-page"
+            className="absolute top-1/2 right-1 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-page"
           >
             <X className="size-4" aria-hidden />
           </button>
@@ -60,7 +64,7 @@ export function TeacherStep({ flow }: { flow: Flow }) {
       </div>
 
       {loading ? (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {Array.from({ length: 6 }, (_, i) => (
             <Skeleton key={i} className="h-[72px] rounded-lg" />
           ))}
@@ -68,68 +72,74 @@ export function TeacherStep({ flow }: { flow: Flow }) {
       ) : groups.length === 0 ? (
         <p className="py-10 text-center text-muted-foreground">{t('t_noResults', { q: query })}</p>
       ) : (
-        <div className="space-y-6">
-          {groups.map((g) => (
-            <section key={g.key} aria-labelledby={`g-${g.key}`}>
-              <h2 id={`g-${g.key}`} className="mb-2.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">
-                {g.title}
-              </h2>
-              <ul className="space-y-2.5">
-                {g.teachers.map((teacher) => {
-                  const left = counts.get(teacher.id) ?? 0;
-                  const booked = bookedWith.get(teacher.id);
-                  const featured = g.key === 'homeroom';
-                  return (
-                    <li key={teacher.id}>
-                      <button
-                        type="button"
-                        onClick={() => choose(teacher)}
-                        className={cx(
-                          'group flex w-full items-center gap-3 rounded-lg bg-surface p-3 text-left ring-1 ring-border',
-                          'transition-[box-shadow,transform] duration-250 hover:-translate-y-0.5 hover:shadow-e3 active:scale-[0.99]',
-                          featured ? 'shadow-e2 ring-2 ring-primary/40' : 'shadow-e1',
-                        )}
-                      >
-                        <Avatar text={initials(teacher.name)} muted={left === 0 && booked === undefined} />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[15px] font-bold text-foreground">{teacher.name}</span>
-                          <span className="mt-0.5 flex items-center gap-1 truncate text-[13px] text-muted-foreground">
-                            {teacher.subject && <span className="truncate">{teacher.subject}</span>}
-                            {teacher.subject && teacher.room && <span aria-hidden>·</span>}
-                            {teacher.room && (
-                              <span className="inline-flex shrink-0 items-center gap-0.5">
-                                <MapPin className="size-3" aria-hidden />
-                                {teacher.room}
+        <div className="space-y-7">
+          {groups.map((g) => {
+            const featured = g.key === 'homeroom';
+            return (
+              <section key={g.key} aria-labelledby={`g-${g.key}`}>
+                <h2 id={`g-${g.key}`} className="mb-2 px-1 text-sm font-bold text-foreground">
+                  {g.title}
+                </h2>
+                {/* One grouped list per section, rows separated by hairlines (native list pattern). */}
+                <ul className={cx('divide-y divide-border-strong overflow-hidden rounded-lg border bg-surface', featured ? 'border-action' : 'border-border-strong')}>
+                  {g.teachers.map((teacher) => {
+                    const left = counts.get(teacher.id) ?? 0;
+                    const booked = bookedWith.get(teacher.id);
+                    return (
+                      <li key={teacher.id}>
+                        <button
+                          type="button"
+                          onClick={() => choose(teacher)}
+                          className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors duration-150 hover:bg-surface-page active:bg-surface-muted"
+                        >
+                          <Avatar text={initials(teacher.name)} muted={left === 0 && booked === undefined} />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-base leading-snug font-semibold text-foreground">{teacher.name}</span>
+                            <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
+                              {teacher.subject && <span>{teacher.subject}</span>}
+                              {teacher.subject && teacher.room && <span aria-hidden>·</span>}
+                              {teacher.room && (
+                                <span className="inline-flex items-center gap-1">
+                                  <MapPin className="size-3.5" aria-hidden />
+                                  {teacher.room}
+                                </span>
+                              )}
+                            </span>
+                            {teacher.role && (
+                              <span className="mt-2 flex flex-wrap gap-1.5">
+                                {teacher.role
+                                  .split(',')
+                                  .map((r) => r.trim())
+                                  .filter(Boolean)
+                                  .map((r) => (
+                                    <span key={r} className="inline-flex items-center rounded-sm bg-accent-tint px-2 py-0.5 text-xs font-semibold text-foreground">
+                                      {r}
+                                    </span>
+                                  ))}
                               </span>
                             )}
-                          </span>
-                          {teacher.role && (
-                            <span className="mt-1.5 flex flex-wrap gap-1">
-                              {teacher.role.split(',').map((r) => r.trim()).filter(Boolean).map((r) => (
-                                <span key={r} className="inline-flex items-center rounded-full bg-accent-tint px-2 py-0.5 text-[11px] font-semibold text-foreground">
-                                  {r}
+                            <span className="mt-2 block">
+                              {booked !== undefined ? (
+                                <span className="inline-flex items-center gap-1 rounded-sm bg-action-tint px-2 py-0.5 text-xs font-semibold text-action">
+                                  <Check className="size-3.5" aria-hidden />
+                                  {t('t_bookedAt', { time: fmtTime(booked) })}
                                 </span>
-                              ))}
+                              ) : left === 0 ? (
+                                <StatusPill status="taken" label={t('t_full')} />
+                              ) : (
+                                <span className="text-xs font-semibold text-action">{t('t_left', { n: left })}</span>
+                              )}
                             </span>
-                          )}
-                        </span>
-                        {booked !== undefined ? (
-                          <span className="shrink-0 rounded-full bg-action-tint px-2.5 py-1 text-xs font-semibold text-action">
-                            {t('t_bookedAt', { time: fmtTime(booked) })}
                           </span>
-                        ) : left === 0 ? (
-                          <StatusPill status="taken" label={t('t_full')} />
-                        ) : (
-                          <span className="shrink-0 text-xs font-semibold text-action">{t('t_left', { n: left })}</span>
-                        )}
-                        <ChevronRight className="size-5 shrink-0 text-muted-foreground transition-transform duration-250 group-hover:translate-x-0.5" aria-hidden />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
+                          <ChevronRight className="mt-3 size-5 shrink-0 text-muted-foreground" aria-hidden />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
         </div>
       )}
     </>

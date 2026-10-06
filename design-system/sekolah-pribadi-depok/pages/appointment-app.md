@@ -86,3 +86,26 @@ under `prefers-reduced-motion`.
   the sheet uses `sheet-up` (300ms) and the success check draws in 450ms. All
   are within MASTER's 200–300ms band, except the one-off success
   celebration (large-distance movement exemption).
+
+---
+
+## Flat redesign (Oct 2026, `ui-ux-pro-max` → Flat Design)
+
+Queried `ui-ux-pro-max` ("appointment booking scheduling mobile", variance 4,
+motion 3, density 5) → **Flat Design**. Applied to the app's *structure* only;
+every colour token above is unchanged.
+
+- **No decorative shadows or gradients.** Surfaces are separated by 1px
+  `border-border-strong`. Only things that float above the page (bottom sheet,
+  toast) keep one soft shadow (`--shadow-e4`). `--shadow-e1…e3` are `none`.
+- **Corners:** 6 / 8 / 12 / 16px (`--radius-sm…xl`). Buttons are 8px
+  rectangles, not pills.
+- **Interaction:** hover/press change colour or background only — no lifts,
+  no scale. Transitions 150–200ms. A just-booked slot flashes an outline, no
+  movement.
+- **Lists:** teachers and level choices are grouped rows in one bordered card
+  with hairline dividers (native list pattern).
+- **Type:** Inter; body 16px, secondary 14px, nothing below 12px. No emoji.
+- **Touch targets:** ≥44px for back buttons, text actions and the EN/ID
+  toggle.
+- **Admin tabs:** underline tabs (2px `action` bar) instead of floating pills.

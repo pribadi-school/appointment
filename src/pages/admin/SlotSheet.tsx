@@ -57,7 +57,7 @@ export function SlotSheet({ teacherId, slotStart, onClose }: { teacherId: string
           >
             <div>
               <h3 className="font-bold">{t('a_bookFor')}</h3>
-              <p className="text-[13px] text-muted-foreground">{t('a_bookForHint')}</p>
+              <p className="text-sm text-muted-foreground">{t('a_bookForHint')}</p>
             </div>
             <Field label={t('a_col_parent')} value={form.parentName} onChange={(e) => setForm({ ...form, parentName: e.target.value })} required />
             <div className="grid grid-cols-[1fr_96px] gap-3">
@@ -98,7 +98,7 @@ export function SlotSheet({ teacherId, slotStart, onClose }: { teacherId: string
 
       {booking?.kind === 'blocked' && (
         <div className="space-y-4">
-          <p className="flex items-center gap-2 text-[15px] font-semibold">
+          <p className="flex items-center gap-2 text-base font-semibold">
             <Ban className="size-4 text-muted-foreground" aria-hidden />
             {t('st_blocked')}
             {booking.note ? ` · ${booking.note}` : ''}

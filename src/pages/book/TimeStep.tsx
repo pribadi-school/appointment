@@ -90,16 +90,20 @@ export function TimeStep({ flow }: { flow: Flow }) {
         <Avatar text={avatarText(teacher)} />
         <div className="min-w-0 flex-1">
           {sd && <p className="text-xs font-semibold text-muted-foreground">{t('sd_teachers')} · {classLabel(teacher.homeroomClass, t)}</p>}
-          <p className={cx('text-[15px] font-bold text-foreground', !sd && 'truncate')}>{teacher.name}</p>
-          {teacher.subject && <p className="truncate text-[13px] text-muted-foreground">{teacher.subject}</p>}
+          <p className={cx('text-base font-bold text-foreground', !sd && 'truncate')}>{teacher.name}</p>
+          {teacher.subject && <p className="truncate text-sm text-muted-foreground">{teacher.subject}</p>}
           {teacher.room && (
-            <p className="flex items-center gap-1 truncate text-[13px] font-semibold text-foreground">
+            <p className="flex items-center gap-1 truncate text-sm font-semibold text-foreground">
               <MapPin className="size-3 shrink-0 text-muted-foreground" aria-hidden />
               {teacher.room}
             </p>
           )}
         </div>
-        <button type="button" onClick={() => flow.go(sd ? 'details' : 'teacher')} className="shrink-0 px-1 text-sm font-semibold text-action hover:underline">
+        <button
+          type="button"
+          onClick={() => flow.go(sd ? 'details' : 'teacher')}
+          className="-mr-1 inline-flex min-h-11 shrink-0 items-center rounded-md px-2 text-sm font-semibold text-action transition-colors duration-150 hover:bg-action-tint"
+        >
           {t('t_change')}
         </button>
       </Card>
@@ -113,7 +117,7 @@ export function TimeStep({ flow }: { flow: Flow }) {
       <div className="mt-4 space-y-5" role="group" aria-label={t('time_heading')}>
         {byHour.map(([hour, list]) => (
           <div key={hour}>
-            <p className="mb-2 text-xs font-bold tracking-wide text-muted-foreground">{hour}</p>
+            <p className="mb-2 text-sm font-semibold text-muted-foreground tabular-nums">{hour}</p>
             <div className="grid grid-cols-3 gap-2 min-[400px]:grid-cols-4 sm:grid-cols-6">
               {list.map((s) => {
                 const st = chipState(s);
@@ -127,22 +131,22 @@ export function TimeStep({ flow }: { flow: Flow }) {
                     aria-label={`${fmtTime(s.start)}, ${label(st)}`}
                     onClick={() => !disabled && flow.setSlotStart(s.start)}
                     className={cx(
-                      'relative flex h-14 flex-col items-center justify-center rounded-md text-center',
-                      'transition-[background-color,box-shadow,transform,color] duration-250 ease-standard',
+                      'relative flex h-14 flex-col items-center justify-center rounded-md border text-center',
+                      'transition-[background-color,border-color,color] duration-150 ease-standard',
                       s.flashing && 'animate-slot-flash',
                       st === 'available' && disabled && 'cursor-not-allowed opacity-50',
                       st === 'available' &&
-                        'bg-status-available-bg text-status-available-fg ring-1 ring-status-available-border shadow-e1 hover:-translate-y-0.5 hover:shadow-e2 active:scale-95',
-                      st === 'selected' && 'bg-action text-on-primary shadow-e3 ring-2 ring-action',
-                      (st === 'taken' || st === 'busy') && 'cursor-not-allowed bg-status-taken-bg text-status-taken-fg',
-                      st === 'passed' && 'cursor-not-allowed bg-transparent text-muted-foreground/70 ring-1 ring-border',
+                        'border-status-available-border bg-status-available-bg text-status-available-fg hover:border-action hover:bg-action-tint',
+                      st === 'selected' && 'border-action bg-action text-on-primary',
+                      (st === 'taken' || st === 'busy') && 'cursor-not-allowed border-transparent bg-status-taken-bg text-status-taken-fg',
+                      st === 'passed' && 'cursor-not-allowed border-border bg-transparent text-muted-foreground',
                     )}
                   >
-                    <span className={cx('text-[15px] font-bold tabular-nums', (st === 'taken' || st === 'passed') && 'line-through decoration-1')}>
+                    <span className={cx('text-base font-semibold tabular-nums', (st === 'taken' || st === 'passed') && 'line-through decoration-1')}>
                       {fmtTime(s.start)}
                     </span>
                     {st !== 'available' && (
-                      <span className="mt-0.5 flex items-center gap-0.5 text-[10.5px] leading-none font-semibold">
+                      <span className="mt-1 flex items-center gap-0.5 text-xs leading-none font-medium">
                         {st === 'selected' && <Check className="size-3" aria-hidden />}
                         {label(st)}
                       </span>
@@ -155,7 +159,7 @@ export function TimeStep({ flow }: { flow: Flow }) {
         ))}
       </div>
 
-      {busyAt.size > 0 && <p className="mt-4 text-[13px] text-muted-foreground">{t('time_busyHint')}</p>}
+      {busyAt.size > 0 && <p className="mt-5 text-sm text-muted-foreground">{t('time_busyHint')}</p>}
 
       <StickyBar>
         <Button block disabled={!flow.slotStart} onClick={() => flow.go('confirm')}>

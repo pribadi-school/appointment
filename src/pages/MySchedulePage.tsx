@@ -114,7 +114,7 @@ export function MySchedulePage() {
                 <Notice tone="info">{t('my_none')}</Notice>
               </div>
             )}
-            <p className="mt-2 mb-5 text-[15px] text-muted-foreground">{t('my_intro')}</p>
+            <p className="mt-2 mb-5 text-base text-muted-foreground">{t('my_intro')}</p>
             <form onSubmit={submit} className="space-y-5" noValidate>
               <Field
                 label={t('f_phone')}
@@ -151,7 +151,7 @@ export function MySchedulePage() {
 
         {query && list && list.length > 0 && settings && (
           <>
-            <p className="mt-1 text-[15px] text-muted-foreground">
+            <p className="mt-1 text-base text-muted-foreground">
               {t('my_count', { n: list.length, date: fmtDate(settings.eventDate, lang, { weekday: undefined }) })}
             </p>
             <ol className="mt-5 space-y-3">
@@ -177,13 +177,13 @@ export function MySchedulePage() {
                           />
                         </div>
                         {(teacher?.subject || teacher?.level === 'sd') && (
-                          <p className="text-[13px] text-muted-foreground">{teacher.subject ?? t('sd_teachers')}</p>
+                          <p className="text-sm text-muted-foreground">{teacher.subject ?? t('sd_teachers')}</p>
                         )}
                         <p className="mt-1.5 flex items-center gap-1 text-sm font-semibold text-foreground">
                           <MapPin className="size-4 text-muted-foreground" aria-hidden />
                           {teacher?.room ?? t('roomTbc')}
                         </p>
-                        <p className="mt-1 text-[13px] text-muted-foreground">
+                        <p className="mt-1 text-sm text-muted-foreground">
                           <span className="font-semibold text-accent">{b.childName}</span> ({classLabel(b.childClass, t)}) · {t('my_code', { code: b.code })}
                         </p>
                       </div>
@@ -248,7 +248,7 @@ export function MySchedulePage() {
         {toCancel && settings && (
           <div className="flex items-center gap-3">
             <Avatar text={avatarText(byId.get(toCancel.teacherId))} />
-            <p className="text-[15px] text-foreground">
+            <p className="text-base text-foreground">
               {t('my_cancelBody', { teacher: teacherName(toCancel), time: fmtRange(toCancel.slotStart, minutesOf(toCancel)) })}
             </p>
           </div>

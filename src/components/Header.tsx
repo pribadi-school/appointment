@@ -28,7 +28,7 @@ export function LiveIndicator({ className }: { className?: string }) {
 export function LangToggle() {
   const { lang, setLang, t } = useI18n();
   return (
-    <div role="group" aria-label={t('langLabel')} className="inline-flex rounded-full bg-surface-muted p-0.5 text-xs font-bold">
+    <div role="group" aria-label={t('langLabel')} className="inline-flex rounded-md border border-border-strong p-0.5 text-xs font-bold">
       {(['en', 'id'] as const).map((l) => (
         <button
           key={l}
@@ -38,8 +38,8 @@ export function LangToggle() {
           aria-label={l === 'en' ? 'English' : 'Bahasa Indonesia'}
           onClick={() => setLang(l)}
           className={cx(
-            'h-7 min-w-9 rounded-full px-2 transition-[background-color,color,box-shadow] duration-250',
-            lang === l ? 'bg-surface text-foreground shadow-e1' : 'text-muted-foreground hover:text-foreground',
+            'h-9 min-w-10 rounded-sm px-2 transition-[background-color,color] duration-150',
+            lang === l ? 'bg-action text-on-primary' : 'text-muted-foreground hover:bg-surface-page hover:text-foreground',
           )}
         >
           {l.toUpperCase()}
@@ -69,10 +69,10 @@ export function Header({ title, right, wide }: { title?: string; right?: ReactNo
       {api.mode === 'demo' && (
         <div className="no-print bg-foreground px-4 py-1.5 text-center text-[12px] font-medium text-on-primary">{t('demoBanner')}</div>
       )}
-      <header className="no-print sticky top-0 z-40 border-b border-border bg-surface/90 shadow-sm backdrop-blur-md">
-        <div className={cx('mx-auto flex min-h-20 items-center gap-4 px-5 py-4 sm:min-h-24 sm:gap-5 sm:px-8 sm:py-5', wide ? 'max-w-[1600px]' : 'max-w-3xl')}>
-          <Link to="/" className="flex min-w-0 items-center gap-3 rounded-md" aria-label={`${t('school')} — ${t('appName')}`}>
-            <SchoolLogo className="h-8 sm:h-9" />
+      <header className="no-print sticky top-0 z-40 border-b border-border-strong bg-surface">
+        <div className={cx('mx-auto flex h-16 items-center gap-3 px-4 sm:h-[72px] sm:gap-5 sm:px-6', wide ? 'max-w-[1600px]' : 'max-w-3xl')}>
+          <Link to="/" className="flex min-w-0 items-center gap-3 rounded-md py-2" aria-label={`${t('school')} — ${t('appName')}`}>
+            <SchoolLogo className="h-7 sm:h-8" />
             {/* Sub-pages (Live board, Admin …) show their name next to the logo from tablet width up. */}
             {title && (
               <span className="hidden min-w-0 border-l border-border-strong pl-4 text-base font-bold text-foreground sm:block">
@@ -91,10 +91,10 @@ export function Header({ title, right, wide }: { title?: string; right?: ReactNo
   );
 }
 
-/** Fixed bottom action area (native-app style). Content gets bottom padding via .pb-sticky. */
+/** Fixed bottom action bar (native-app style): solid surface with a top border, safe-area aware. */
 export function StickyBar({ children }: { children: ReactNode }) {
   return (
-    <div className="no-print fixed inset-x-0 bottom-0 z-30 bg-linear-to-t from-surface-page via-surface-page/95 to-surface-page/0 pt-6">
+    <div className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-border-strong bg-surface pt-3">
       <div className="mx-auto max-w-3xl px-4 pb-safe">{children}</div>
     </div>
   );

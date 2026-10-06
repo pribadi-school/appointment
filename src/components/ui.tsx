@@ -18,21 +18,22 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 /** Button look, shared by <button>, <a> and router <Link>. */
 export function buttonClass(variant: ButtonProps['variant'] = 'primary', size: ButtonProps['size'] = 'md', block?: boolean) {
   return cx(
-    'inline-flex items-center justify-center gap-2 rounded-full font-semibold select-none text-center',
-    'transition-[background-color,box-shadow,transform,color] duration-250 ease-standard',
-    'disabled:cursor-not-allowed active:scale-[0.98]',
-    size === 'md' ? 'min-h-12 px-6 py-2 text-[15px]' : 'min-h-10 px-4 py-1.5 text-sm',
+    'inline-flex items-center justify-center gap-2 rounded-md font-semibold select-none text-center',
+    'transition-[background-color,color,border-color] duration-150 ease-standard',
+    'disabled:cursor-not-allowed',
+    size === 'md' ? 'min-h-12 px-5 py-2 text-base' : 'min-h-11 px-4 py-1.5 text-sm',
     block && 'w-full',
     variant === 'primary' &&
-      'bg-action text-on-primary shadow-e2 [&:not(:disabled)]:hover:bg-action-hover [&:not(:disabled)]:hover:-translate-y-0.5 [&:not(:disabled)]:hover:shadow-e3 disabled:bg-surface-muted disabled:text-muted-foreground disabled:shadow-none',
+      'bg-action text-on-primary [&:not(:disabled)]:hover:bg-action-hover [&:not(:disabled)]:active:bg-action-hover disabled:bg-surface-muted disabled:text-muted-foreground',
     variant === 'secondary' &&
-      'bg-surface text-action shadow-e1 ring-1 ring-border-strong [&:not(:disabled)]:hover:shadow-e2 [&:not(:disabled)]:hover:-translate-y-0.5 disabled:text-muted-foreground',
-    variant === 'ghost' && 'text-action [&:not(:disabled)]:hover:bg-action-tint disabled:text-muted-foreground',
-    variant === 'danger' && 'bg-surface text-destructive ring-1 ring-destructive/40 [&:not(:disabled)]:hover:bg-destructive-tint disabled:opacity-60',
+      'border border-border-strong bg-surface text-action [&:not(:disabled)]:hover:bg-action-tint [&:not(:disabled)]:active:bg-action-tint disabled:text-muted-foreground',
+    variant === 'ghost' && 'text-action [&:not(:disabled)]:hover:bg-action-tint [&:not(:disabled)]:active:bg-action-tint disabled:text-muted-foreground',
+    variant === 'danger' &&
+      'border border-destructive/40 bg-surface text-destructive [&:not(:disabled)]:hover:bg-destructive-tint [&:not(:disabled)]:active:bg-destructive-tint disabled:opacity-60',
   );
 }
 
-/** MASTER.md button: pill, neutral elevation, hover darkens + lifts. */
+/** Flat button: solid fill or 1px border, 8px corners; hover/press change colour only (no movement). */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { variant = 'primary', size = 'md', loading, icon, block, className, children, disabled, type = 'button', ...rest },
   ref,
@@ -53,7 +54,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 });
 
 export function Card({ className, children, as: As = 'div' }: { className?: string; children: ReactNode; as?: 'div' | 'section' | 'li' }) {
-  return <As className={cx('rounded-lg bg-surface shadow-e2 ring-1 ring-border', className)}>{children}</As>;
+  return <As className={cx('rounded-lg border border-border-strong bg-surface', className)}>{children}</As>;
 }
 
 type FieldProps = InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string; error?: string | null; trailing?: ReactNode };
@@ -73,9 +74,9 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field({ l
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           className={cx(
-            'h-12 w-full rounded-md bg-surface px-4 text-base text-foreground placeholder:text-muted-foreground/70',
-            'ring-1 transition-shadow duration-200 outline-none focus:ring-2 focus:ring-action',
-            error ? 'ring-destructive' : 'ring-border-strong',
+            'h-12 w-full rounded-md border bg-surface px-4 text-base text-foreground placeholder:text-muted-foreground',
+            'transition-[border-color,box-shadow] duration-150 outline-none focus:border-action focus:ring-1 focus:ring-action',
+            error ? 'border-destructive' : 'border-border-strong',
             trailing ? 'pr-12' : '',
           )}
           {...rest}
@@ -83,7 +84,7 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field({ l
         {trailing && <div className="absolute inset-y-0 right-2 flex items-center">{trailing}</div>}
       </div>
       {hint && !error && (
-        <p id={`${id}-hint`} className="mt-1.5 text-[13px] text-muted-foreground">
+        <p id={`${id}-hint`} className="mt-1.5 text-sm text-muted-foreground">
           {hint}
         </p>
       )}
@@ -116,7 +117,7 @@ export function SelectField({
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-12 w-full rounded-md bg-surface px-3 text-base text-foreground ring-1 ring-border-strong outline-none focus:ring-2 focus:ring-action"
+        className="h-12 w-full rounded-md border border-border-strong bg-surface px-3 text-base text-foreground outline-none focus:border-action focus:ring-1 focus:ring-action"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value} disabled={o.disabled}>
@@ -130,7 +131,7 @@ export function SelectField({
 
 export function FieldError({ id, children }: { id?: string; children: ReactNode }) {
   return (
-    <p id={id} className="mt-1.5 flex items-start gap-1.5 text-[13px] font-medium text-destructive">
+    <p id={id} className="mt-1.5 flex items-start gap-1.5 text-sm font-medium text-destructive">
       <AlertCircle className="mt-px size-4 shrink-0" aria-hidden />
       {children}
     </p>
@@ -147,10 +148,10 @@ export function Notice({ tone = 'info', children, action }: { tone?: 'info' | 'e
     <div
       role={tone === 'error' ? 'alert' : 'status'}
       className={cx(
-        'flex items-start gap-3 rounded-md px-4 py-3 text-sm animate-fade-in',
-        tone === 'error' && 'bg-destructive-tint text-foreground ring-1 ring-destructive/25',
-        tone === 'info' && 'bg-action-tint text-foreground',
-        tone === 'success' && 'bg-status-progress-bg text-foreground',
+        'flex items-start gap-3 rounded-md border px-4 py-3 text-base animate-fade-in',
+        tone === 'error' && 'border-destructive/30 bg-destructive-tint text-foreground',
+        tone === 'info' && 'border-action/20 bg-action-tint text-foreground',
+        tone === 'success' && 'border-gradient-end/30 bg-status-progress-bg text-foreground',
       )}
     >
       {tone === 'error' ? (
@@ -173,7 +174,7 @@ export function StatusPill({ status, label, className }: { status: Status; label
   return (
     <span
       className={cx(
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap',
+        'inline-flex items-center gap-1.5 rounded-sm px-2 py-1 text-xs font-semibold whitespace-nowrap',
         status === 'available' && 'bg-status-available-bg text-status-available-fg ring-1 ring-status-available-border',
         (status === 'taken' || status === 'blocked') && 'bg-status-taken-bg text-status-taken-fg',
         status === 'inProgress' && 'bg-status-progress-bg text-status-progress-fg ring-1 ring-gradient-end/40',
@@ -216,7 +217,7 @@ export function Switch({ checked, onChange, label, disabled }: { checked: boolea
     >
       <span
         className={cx(
-          'inline-block size-5 rounded-full bg-surface shadow-e1 transition-transform duration-250 ease-out-cubic',
+          'inline-block size-5 rounded-full bg-surface transition-transform duration-150 ease-out-cubic',
           checked ? 'translate-x-6' : 'translate-x-1',
         )}
       />
@@ -239,7 +240,7 @@ export function Segmented<V extends string>({
   className?: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className={cx('inline-flex rounded-full bg-surface-muted p-1', className)}>
+    <div role="radiogroup" aria-label={label} className={cx('inline-flex rounded-md border border-border-strong bg-surface-muted p-0.5', className)}>
       {options.map((o) => (
         <button
           key={o.value}
@@ -248,8 +249,8 @@ export function Segmented<V extends string>({
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
           className={cx(
-            'h-8 rounded-full px-3.5 text-sm font-semibold transition-[background-color,color,box-shadow] duration-250',
-            value === o.value ? 'bg-surface text-foreground shadow-e1' : 'text-muted-foreground hover:text-foreground',
+            'min-h-10 rounded-sm px-3.5 text-sm font-semibold transition-[background-color,color] duration-150',
+            value === o.value ? 'bg-surface text-foreground ring-1 ring-border-strong' : 'text-muted-foreground hover:text-foreground',
           )}
         >
           {o.label}
@@ -259,17 +260,17 @@ export function Segmented<V extends string>({
   );
 }
 
-/** Rounded-square gradient badge with initials (MASTER: "badge, own shadow"). */
+/** Flat badge with initials (or an SD grade number): tinted square, brand-blue text. */
 export function Avatar({ text, size = 'md', muted }: { text: string; size?: 'sm' | 'md' | 'lg'; muted?: boolean }) {
   return (
     <span
       aria-hidden
       className={cx(
-        'inline-flex shrink-0 items-center justify-center font-bold text-on-primary shadow-e1',
-        muted ? 'bg-muted-foreground' : 'bg-linear-135 from-gradient-start to-gradient-end',
-        size === 'sm' && 'size-9 rounded-[10px] text-xs',
-        size === 'md' && 'size-11 rounded-[12px] text-sm',
-        size === 'lg' && 'size-14 rounded-md text-lg',
+        'inline-flex shrink-0 items-center justify-center rounded-md font-bold',
+        muted ? 'bg-surface-muted text-muted-foreground' : 'bg-action-tint text-action',
+        size === 'sm' && 'size-9 text-xs',
+        size === 'md' && 'size-11 text-sm',
+        size === 'lg' && 'size-12 text-base',
       )}
     >
       {text}

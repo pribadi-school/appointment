@@ -12,6 +12,7 @@
     "seed:generate": "node scripts/generate-seed.ts",
     "db:setup": "node scripts/db-setup.ts",
     "db:admin-password": "node scripts/db-setup.ts --password-only",
+    "db:teacher-pin": "node scripts/db-setup.ts --teacher-pin",
     "test": "vitest run",
     "test:db": "vitest run tests/db",
     "test:e2e": "playwright test"

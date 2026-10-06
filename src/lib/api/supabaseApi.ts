@@ -134,7 +134,7 @@ export function createSupabaseApi(url: string, key: string): Api {
     parentCancel: (id, phone, childName) =>
       rpc('parent_cancel_booking', { p_booking_id: id, p_phone: phone, p_child_name: childName }),
 
-    teacherLogin: (teacherId) => login('teacher_login', { p_teacher_id: teacherId }),
+    teacherLogin: (teacherId, pin) => login('teacher_login', { p_teacher_id: teacherId, p_pin: pin }),
     teacherSchedule: async (token) => (await rpc<Row[]>('teacher_schedule', { p_token: token })).map(toBooking),
     teacherSetStatus: (token, id, status) => rpc('teacher_set_status', { p_token: token, p_booking_id: id, p_status: status }),
     logout: (token) => rpc('logout', { p_token: token }),
@@ -180,6 +180,15 @@ export function createSupabaseApi(url: string, key: string): Api {
       });
       if (r.error) throw new AppError(r.error);
       return r.count ?? 0;
+    },
+    async adminSetTeacherPin(token, password, pin) {
+      // Returns {error} instead of raising, like admin_maintenance.
+      const r = await rpc<{ ok?: boolean; error?: string }>('admin_set_teacher_pin', {
+        p_token: token,
+        p_password: password,
+        p_pin: pin,
+      });
+      if (r.error) throw new AppError(r.error);
     },
   };
 }

@@ -36,7 +36,8 @@ export interface Api {
   parentCancel(bookingId: string, phone: string, childName: string): Promise<void>;
 
   // Teachers
-  teacherLogin(teacherId: string): Promise<Session>;
+  /** Name + the PIN shared by all teachers. */
+  teacherLogin(teacherId: string, pin: string): Promise<Session>;
   teacherSchedule(token: string): Promise<Booking[]>;
   teacherSetStatus(token: string, bookingId: string, status: Booking['status']): Promise<void>;
   logout(token: string): Promise<void>;
@@ -55,6 +56,8 @@ export interface Api {
   adminSaveSettings(token: string, settings: Settings): Promise<void>;
   /** Needs the admin password again. Returns how many sessions/bookings were removed. */
   adminMaintenance(token: string, password: string, action: MaintenanceAction): Promise<number>;
+  /** Needs the admin password again. Signs every teacher out. */
+  adminSetTeacherPin(token: string, password: string, pin: string): Promise<void>;
 }
 
 export type MaintenanceAction = 'sign_out_teachers' | 'sign_out_all' | 'clear_bookings';

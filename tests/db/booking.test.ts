@@ -180,10 +180,17 @@ describe('privacy (Row Level Security)', () => {
 });
 
 describe('teacher and admin sessions', () => {
-  it('teacher login by name, schedule and Done marking', async () => {
-    const bad = (await c.query('select public.teacher_login($1) r', ['00000000-0000-0000-0000-000000000000'])).rows[0].r;
-    expect(bad.error).toBe('NOT_FOUND');
-    const t = (await c.query('select public.teacher_login($1) r', [teacherA])).rows[0].r;
+  const tLogin = async (teacherId: string, pin: string) =>
+    (await c.query('select public.teacher_login($1, $2) r', [teacherId, pin])).rows[0].r;
+
+  it('teacher login needs the shared PIN; schedule and Done marking', async () => {
+    await c.query(`delete from private.secrets where key = 'teacher_pin'`);
+    expect((await tLogin(teacherA, '13579246')).error).toBe('PIN_NOT_SET');
+    await c.query(`select public.set_teacher_pin('13579246')`);
+    expect((await tLogin('00000000-0000-0000-0000-000000000000', '13579246')).error).toBe('NOT_FOUND');
+    expect((await tLogin(teacherA, '11111111')).error).toBe('BAD_PIN');
+    expect((await tLogin(teacherA, '')).error).toBe('BAD_PIN');
+    const t = await tLogin(teacherA, '13579246');
     expect(t.token).toBeTruthy();
 
     const b = await book(c, teacherA, at('09:00'), '081234567890');
@@ -192,6 +199,48 @@ describe('teacher and admin sessions', () => {
     await c.query('select public.teacher_set_status($1, $2, $3)', [t.token, b.id, 'done']);
     const s = await c.query('select status from public.slot_status');
     expect(s.rows[0].status).toBe('done');
+  });
+
+  it('wrong PINs lock out only that teacher, and only for a while', async () => {
+    await c.query(`select public.set_teacher_pin('13579246')`);
+    for (let i = 0; i < 10; i++) expect((await tLogin(teacherA, '00000000')).error).toBe('BAD_PIN');
+    expect((await tLogin(teacherA, '13579246')).error).toBe('LOCKED');
+    expect((await tLogin(teacherB, '13579246')).token).toBeTruthy();
+    await c.query(`update private.login_failures set at = now() - interval '11 minutes' where key = $1`, ['teacher:' + teacherA]);
+    expect((await tLogin(teacherA, '13579246')).token).toBeTruthy();
+  });
+
+  it('the PIN is never stored in plain text and is not reachable by the public', async () => {
+    await c.query(`select public.set_teacher_pin('13579246')`);
+    const row = (await c.query(`select salt, hash from private.secrets where key = 'teacher_pin'`)).rows[0];
+    expect(row.hash).not.toContain('13579246');
+    await c.query('set role anon');
+    try {
+      expect(await outcome(c.query(`select public.set_teacher_pin('99999999')`))).not.toBe('OK');
+      expect(await outcome(c.query(`select * from private.secrets`))).not.toBe('OK');
+    } finally {
+      await c.query('reset role');
+    }
+  });
+
+  it('admin changes the teacher PIN: needs the password, validates, signs teachers out', async () => {
+    await c.query('delete from private.sessions');
+    await c.query(`select public.set_admin_password('correct horse')`);
+    await c.query(`select public.set_teacher_pin('13579246')`);
+    const admin = (await c.query(`select public.admin_login('correct horse') r`)).rows[0].r;
+    const teacher = await tLogin(teacherA, '13579246');
+    const set = async (password: string, pin: string) =>
+      (await c.query('select public.admin_set_teacher_pin($1, $2, $3) r', [admin.token, password, pin])).rows[0].r;
+
+    expect((await set('wrong', '55556666')).error).toBe('BAD_PASSWORD');
+    expect((await set('correct horse', '12a4')).error).toBe('INVALID_PIN');
+    expect((await set('correct horse', '123')).error).toBe('INVALID_PIN');
+    expect((await tLogin(teacherA, '13579246')).token).toBeTruthy();
+    expect((await set('correct horse', '55556666')).ok).toBe(true);
+    expect(await outcome(c.query('select public.teacher_schedule($1)', [teacher.token]))).toBe('SESSION_EXPIRED');
+    expect((await tLogin(teacherA, '13579246')).error).toBe('BAD_PIN');
+    expect((await tLogin(teacherA, '55556666')).token).toBeTruthy();
+    expect(await outcome(c.query('select public.admin_set_teacher_pin($1, $2, $3)', ['not-a-token', 'correct horse', '55556666']))).toBe('SESSION_EXPIRED');
   });
 
   it('wrong admin password and expired tokens are refused', async () => {
@@ -206,7 +255,8 @@ describe('teacher and admin sessions', () => {
     await c.query(`select public.set_admin_password('correct horse')`);
     const admin = (await c.query(`select public.admin_login('correct horse') r`)).rows[0].r;
     const other = (await c.query(`select public.admin_login('correct horse') r`)).rows[0].r;
-    const teacher = (await c.query('select public.teacher_login($1) r', [teacherA])).rows[0].r;
+    await c.query(`select public.set_teacher_pin('13579246')`);
+    const teacher = await tLogin(teacherA, '13579246');
     await book(c, teacherA, at('09:00'), '081234567890');
     const run = async (password: string, action: string) =>
       (await c.query('select public.admin_maintenance($1, $2, $3) r', [admin.token, password, action])).rows[0].r;

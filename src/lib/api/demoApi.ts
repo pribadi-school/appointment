@@ -21,9 +21,12 @@ type Db = {
   teachers: Teacher[];
   bookings: Booking[];
   sessions: { token: string; role: 'admin' | 'teacher'; teacherId?: string; expiresAt: number }[];
+  /** Shared teacher PIN; missing in demo data saved before PINs existed. */
+  teacherPin?: string;
 };
 
 const DEMO_ADMIN_PASSWORD = 'demo';
+const DEMO_TEACHER_PIN = '1234';
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const uid = () => crypto.randomUUID();
@@ -244,10 +247,11 @@ export function createDemoApi(): Api {
       write(db, 'slots');
     },
 
-    async teacherLogin(teacherId) {
+    async teacherLogin(teacherId, pin) {
       await wait();
       const db = read();
       if (!db.teachers.some((t) => t.id === teacherId)) throw new AppError('NOT_FOUND');
+      if (pin !== (db.teacherPin ?? DEMO_TEACHER_PIN)) throw new AppError('BAD_PIN');
       return newSession(db, 'teacher', teacherId);
     },
     async teacherSchedule(token) {
@@ -405,6 +409,16 @@ export function createDemoApi(): Api {
         save(KEYS.demoDb, db);
       }
       return count;
+    },
+    async adminSetTeacherPin(token, password, pin) {
+      await wait();
+      const db = read();
+      session(db, token, 'admin');
+      if (password !== DEMO_ADMIN_PASSWORD) throw new AppError('BAD_PASSWORD');
+      if (!/^[0-9]{4,10}$/.test(pin)) throw new AppError('INVALID_PIN');
+      db.teacherPin = pin;
+      db.sessions = db.sessions.filter((s) => s.role !== 'teacher');
+      save(KEYS.demoDb, db);
     },
   };
 }

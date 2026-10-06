@@ -105,11 +105,13 @@ create unique index if not exists bookings_child_teacher_key
 
 create index if not exists bookings_phone_idx on private.bookings (phone);
 
--- Teachers sign in by picking their name (no PIN). Clean up the old PIN table.
+-- Teachers sign in with their name plus ONE PIN shared by all teachers (stored
+-- hashed in private.secrets under 'teacher_pin'). Clean up the older
+-- per-teacher PIN table and the name-only login it replaced.
 drop function if exists public.admin_set_pin(text, uuid, text);
 drop function if exists public.admin_generate_pins(text, boolean);
 drop function if exists public.admin_pin_status(text);
-drop function if exists public.teacher_login(uuid, text);
+drop function if exists public.teacher_login(uuid);
 drop table if exists private.teacher_pins;
 
 -- Short-lived login sessions for teachers and the admin.
@@ -460,19 +462,53 @@ begin
 end $$;
 
 -- =============================================================================
--- PUBLIC FUNCTIONS — teachers (pick your name, no PIN)
+-- PUBLIC FUNCTIONS — teachers (pick your name + the shared teacher PIN)
 -- =============================================================================
 
+-- Stores the shared teacher PIN (4–10 digits) as a salted hash and signs every
+-- teacher out, so a changed PIN takes effect everywhere at once.
+create or replace function private.store_teacher_pin(p_pin text) returns void
+language plpgsql set search_path = '' as $$
+declare v_salt text := private.random_token();
+begin
+  if coalesce(p_pin, '') !~ '^[0-9]{4,10}$' then
+    raise exception 'INVALID_PIN';
+  end if;
+  insert into private.secrets (key, salt, hash) values ('teacher_pin', v_salt, private.hash_secret(v_salt, p_pin))
+  on conflict (key) do update set salt = excluded.salt, hash = excluded.hash;
+  delete from private.sessions where role = 'teacher';
+  delete from private.login_failures where key like 'teacher:%';
+end $$;
+revoke all on function private.store_teacher_pin(text) from public, anon, authenticated;
+
 -- Returns {token, expiresAt} or {error}.
-create or replace function public.teacher_login(p_teacher_id uuid) returns json
+-- Wrong-PIN lock-out is counted per teacher ('teacher:<id>'), not globally:
+-- one shared counter would let anyone lock every teacher out on the day just
+-- by typing wrong PINs. 10 tries per 10 minutes still makes guessing an
+-- 8-digit PIN hopeless.
+create or replace function public.teacher_login(p_teacher_id uuid, p_pin text) returns json
 language plpgsql security definer set search_path = '' as $$
 declare
-  v_token text := private.random_token();
-  v_exp   timestamptz := now() + interval '18 hours';
+  v_secret private.secrets;
+  v_key    text := 'teacher:' || coalesce(p_teacher_id::text, '');
+  v_token  text := private.random_token();
+  v_exp    timestamptz := now() + interval '18 hours';
 begin
   if not exists (select 1 from public.teachers where id = p_teacher_id) then
     return json_build_object('error', 'NOT_FOUND');
   end if;
+  if (select count(*) from private.login_failures where key = v_key and at > now() - interval '10 minutes') >= 10 then
+    return json_build_object('error', 'LOCKED');
+  end if;
+  select * into v_secret from private.secrets where key = 'teacher_pin';
+  if not found then
+    return json_build_object('error', 'PIN_NOT_SET');
+  end if;
+  if private.hash_secret(v_secret.salt, coalesce(p_pin, '')) <> v_secret.hash then
+    insert into private.login_failures (key) values (v_key);
+    return json_build_object('error', 'BAD_PIN');
+  end if;
+  delete from private.login_failures where key = v_key;
   delete from private.sessions where expires_at < now();
   insert into private.sessions (token, role, teacher_id, expires_at) values (v_token, 'teacher', p_teacher_id, v_exp);
   return json_build_object('token', v_token, 'expiresAt', v_exp, 'teacherId', p_teacher_id);
@@ -740,6 +776,38 @@ begin
   get diagnostics v_count = row_count;
   return json_build_object('count', v_count);
 end $$;
+
+-- Change the shared teacher PIN from the Admin page. Needs the admin password
+-- again (counts toward the admin lock-out, like admin_maintenance) and signs
+-- every teacher out. Returns {ok} or {error}.
+create or replace function public.admin_set_teacher_pin(p_token text, p_password text, p_pin text) returns json
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_s      private.sessions := private.require_session(p_token, 'admin');
+  v_secret private.secrets;
+begin
+  if (select count(*) from private.login_failures where key = 'admin' and at > now() - interval '15 minutes') >= 30 then
+    return json_build_object('error', 'LOCKED');
+  end if;
+  select * into v_secret from private.secrets where key = 'admin_password';
+  if not found or private.hash_secret(v_secret.salt, coalesce(p_password, '')) <> v_secret.hash then
+    insert into private.login_failures (key) values ('admin');
+    return json_build_object('error', 'BAD_PASSWORD');
+  end if;
+  if coalesce(p_pin, '') !~ '^[0-9]{4,10}$' then
+    return json_build_object('error', 'INVALID_PIN');
+  end if;
+  perform private.store_teacher_pin(p_pin);
+  return json_build_object('ok', true);
+end $$;
+
+-- Only callable by the database owner (from `npm run db:setup`).
+create or replace function public.set_teacher_pin(p_pin text) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform private.store_teacher_pin(p_pin);
+end $$;
+revoke all on function public.set_teacher_pin(text) from public, anon, authenticated;
 
 -- Only callable by the database owner (from `npm run db:setup`).
 create or replace function public.set_admin_password(p_password text) returns void

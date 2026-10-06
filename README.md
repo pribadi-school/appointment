@@ -13,7 +13,7 @@ update live.
 | Book a consultation | Parents (share this link / QR) | `/` |
 | My schedule | Parents | `/my` |
 | Live board | Venue TV, anyone | `/board` |
-| Teacher schedule | Teachers (pick your name) | `/teacher` |
+| Teacher schedule | Teachers (name + teacher PIN) | `/teacher` |
 | Admin | School staff (password) | `/admin` |
 
 The app is in English by default, with an **EN | ID** switch in the header.
@@ -35,7 +35,7 @@ Open http://localhost:5173. Without Supabase settings the app runs in **demo
 mode**: data is stored only in that browser, and tabs update each other live.
 
 - Admin password: `demo`
-- Teachers: pick your name on `/teacher` (no PIN)
+- Teachers: pick your name on `/teacher`, PIN `1234`
 - Rehearse the day: add `?now=09:12` to `/board` or `/teacher` to see the
   board as it would look at 09.12 on the event day.
 
@@ -62,6 +62,7 @@ Copy `.env.example` to `.env` and fill in:
 | `VITE_SUPABASE_ANON_KEY` | same page → `anon` / publishable key (**not** service_role) |
 | `SUPABASE_DB_URL` | Supabase → **Connect** → Session pooler → URI (put your DB password in it) |
 | `ADMIN_PASSWORD` | choose a long password for the admin page (8+ characters) |
+| `TEACHER_PIN` | the PIN all teachers share to sign in (4–10 digits) |
 
 `ADMIN_PASSWORD` and `SUPABASE_DB_URL` are used **only** by the setup command
 on your computer. They are never sent to the browser. Don't add `VITE_` to
@@ -84,6 +85,13 @@ password by running this once in the SQL editor:
 
 To change the admin password later, update `ADMIN_PASSWORD` in `.env` and run
 `npm run db:admin-password`.
+
+**Teacher PIN.** Every teacher signs in with their name plus one shared PIN.
+`npm run db:setup` sets it from `TEACHER_PIN` only if no PIN exists yet, so
+re-running setup never resets it. Change it any time from **Admin → Event
+settings → Teacher PIN** (or update `.env` and run `npm run db:teacher-pin`).
+Changing it signs every teacher out. Without a terminal, run
+`select public.set_teacher_pin('12345678');` in the SQL editor.
 
 ### 4. Check Realtime is on
 
@@ -137,11 +145,14 @@ output folder `dist`, and add an SPA fallback to `index.html`.
   `slot_status` shows *taken/done* plus a class and initial such as
   "8B – A." for the venue board, and nothing else.
 - Every change goes through a checked Postgres function. The admin password
-  is stored only as a salted hash. Logins create sessions that expire
+  and the teacher PIN are stored only as salted hashes, never in the app's code. Logins create sessions that expire
   (teachers after 18h, admin after 12h).
-- **Teachers sign in by picking their name — there is no PIN.** Anyone who
-  opens `/teacher` can view any teacher's schedule, including parent names
-  and WhatsApp numbers, and mark slots Done / No-show.
+- **Teachers sign in with their name and the shared teacher PIN.** A teacher
+  sees only their own schedule (parent names and WhatsApp numbers). After 10
+  wrong PINs, that teacher's sign-in pauses for 10 minutes; the limit is per
+  teacher, so nobody can lock every teacher out at once. Because the PIN is
+  shared, anyone who knows it could open any teacher's schedule: give it only
+  to teachers, and change it if it leaks.
 - "My schedule" requires **both** the WhatsApp number **and** the child's name.
 
 ## Timezone

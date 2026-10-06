@@ -1,5 +1,5 @@
 /**
- * Teacher view: pick your name, see your own consultations
+ * Teacher view: pick your name, enter the shared teacher PIN, see your own consultations
  * with parent details. Mark Done / No-show on the day. The current slot is
  * highlighted from the clock and scrolled into view.
  */
@@ -9,7 +9,7 @@ import { Ban, Check, ChevronDown, MapPin, MessageCircle, Search, Users, UserX } 
 import { BottomSheet } from '../components/BottomSheet';
 import { Header } from '../components/Header';
 import { useToast } from '../components/Toast';
-import { Avatar, Button, Card, Notice, PulseDot, Skeleton, StatusPill, cx } from '../components/ui';
+import { Avatar, Button, Card, Field, Notice, PulseDot, Skeleton, StatusPill, cx } from '../components/ui';
 import { api } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { useLive, useNow } from '../lib/live';
@@ -43,6 +43,7 @@ function TeacherLogin({ onSignIn }: { onSignIn: (s: Session) => void }) {
   const [teacherId, setTeacherId] = useState<string | null>(() => load<string | null>(KEYS.lastTeacher, null));
   const [sheet, setSheet] = useState(false);
   const [query, setQuery] = useState('');
+  const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ErrorCode | null>(null);
   const teacher = teachers.find((x) => x.id === teacherId);
@@ -54,11 +55,12 @@ function TeacherLogin({ onSignIn }: { onSignIn: (s: Session) => void }) {
     setBusy(true);
     setError(null);
     try {
-      const s = await api.teacherLogin(teacherId);
+      const s = await api.teacherLogin(teacherId, pin);
       save(KEYS.lastTeacher, teacherId);
       onSignIn({ ...s, teacherId });
     } catch (err) {
       setError(errorCode(err));
+      setPin('');
     } finally {
       setBusy(false);
     }
@@ -89,8 +91,20 @@ function TeacherLogin({ onSignIn }: { onSignIn: (s: Session) => void }) {
               <ChevronDown className="size-5 shrink-0 text-muted-foreground" aria-hidden />
             </button>
           </div>
+          <Field
+            label={t('tv_pin')}
+            hint={t('tv_pinHint')}
+            type="password"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]*"
+            maxLength={10}
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            className="[&_input]:text-center [&_input]:text-xl [&_input]:tracking-[0.4em]"
+          />
           {error && <Notice tone="error">{errorText(error)}</Notice>}
-          <Button type="submit" block loading={busy} disabled={!teacherId}>
+          <Button type="submit" block loading={busy} disabled={!teacherId || pin.length < 4}>
             {t('tv_signIn')}
           </Button>
         </form>

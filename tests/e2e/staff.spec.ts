@@ -1,4 +1,4 @@
-/** Admin and teacher screens (demo mode: admin password "demo"; teachers pick their name). */
+/** Admin and teacher screens (demo mode: admin password "demo"; teacher PIN "1234"). */
 import { expect, test } from '@playwright/test';
 
 test.use({ viewport: { width: 1280, height: 900 } });
@@ -68,7 +68,7 @@ test('admin: book a walk-in, block a break, export, edit a teacher, change setti
   await expect(page.locator('.qr-poster svg')).toBeVisible();
 });
 
-test('teacher: sign in by name, own schedule with parent details, Done', async ({ page, context }) => {
+test('teacher: sign in with name + PIN, own schedule with parent details, Done', async ({ page, context }) => {
   // A parent books first.
   const parent = await context.newPage();
   await parent.goto('/');
@@ -86,6 +86,11 @@ test('teacher: sign in by name, own schedule with parent details, Done', async (
   await page.goto('/teacher?now=08:33');
   await page.getByRole('button', { name: /Your name/ }).click();
   await page.getByRole('dialog').getByRole('button', { name: /Nairah Umpa Camid/ }).click();
+  await expect(page.getByRole('button', { name: 'Sign in' })).toBeDisabled();
+  await page.getByLabel('Teacher PIN').fill('9999');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByText('That PIN isn’t right. Please try again.')).toBeVisible();
+  await page.getByLabel('Teacher PIN').fill('1234');
   await page.getByRole('button', { name: 'Sign in' }).click();
 
   const now = page.locator('li[aria-current="time"]');

@@ -1,6 +1,6 @@
-/** Event date, slot times/length, the booking open/close switch, and maintenance. */
+/** Event date, slot times/length, the booking open/close switch, the teacher PIN, and maintenance. */
 import { useEffect, useState, type FormEvent } from 'react';
-import { LogOut, RotateCcw, Trash2, Users } from 'lucide-react';
+import { KeyRound, LogOut, RotateCcw, Trash2, Users } from 'lucide-react';
 import { BottomSheet } from '../../components/BottomSheet';
 import { useToast } from '../../components/Toast';
 import { Button, Card, Field, Notice, SelectField, Switch } from '../../components/ui';
@@ -69,6 +69,8 @@ export function SettingsTab() {
         </Button>
       </Card>
 
+      <TeacherPinCard />
+
       <MaintenanceCard />
 
       {api.mode === 'demo' && (
@@ -77,6 +79,63 @@ export function SettingsTab() {
         </Button>
       )}
     </div>
+  );
+}
+
+/** Change the PIN all teachers share. Asks for the admin password again; signs every teacher out. */
+function TeacherPinCard() {
+  const { t, errorText } = useI18n();
+  const toast = useToast();
+  const { token } = useAdmin();
+  const [pin, setPin] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ErrorCode | null>(null);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await api.adminSetTeacherPin(token, password, pin);
+      toast(t('a_pin_saved'), 'success');
+      setPin('');
+    } catch (err) {
+      setError(errorCode(err));
+    } finally {
+      setPassword('');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="p-5">
+      <h2 className="text-lg font-bold text-foreground">{t('a_pin_title')}</h2>
+      <p className="mt-1 mb-4 text-sm text-muted-foreground">{t('a_pin_intro')}</p>
+      <form onSubmit={submit} className="space-y-4">
+        <Field
+          label={t('a_pin_new')}
+          hint={t('a_pin_newHint')}
+          inputMode="numeric"
+          autoComplete="off"
+          pattern="[0-9]*"
+          maxLength={10}
+          value={pin}
+          onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+        />
+        <Field
+          label={t('a_password')}
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        {error && <Notice tone="error">{errorText(error)}</Notice>}
+        <Button type="submit" block loading={busy} disabled={pin.length < 4 || !password} icon={<KeyRound className="size-4" aria-hidden />}>
+          {t('a_pin_save')}
+        </Button>
+      </form>
+    </Card>
   );
 }
 

@@ -50,6 +50,12 @@ security" are enforced by the database, not the UI:
 - All writes go through checked Postgres functions (`book_slot`, …); parent
   names/phones live in the `private` schema; RLS is on for every table.
 - Never expose the service_role key or read `private` from the browser.
+- Teacher sign-in = name + ONE shared PIN (`teacher_login(id, pin)`), stored
+  hashed in `private.secrets` ('teacher_pin'). Never check the PIN in the
+  browser or put it in code/git. Wrong-PIN lock-out is keyed per teacher
+  (`teacher:<id>`) on purpose — a global counter lets anyone lock all
+  teachers out. `db:setup` only sets the PIN if none exists; changing it
+  (Admin page / `db:teacher-pin`) signs every teacher out.
 
 Schema changes go in `supabase/migrations/` (currently one file,
 `0001_schema.sql`, re-runnable). `npm run db:setup` applies it and never
@@ -64,8 +70,8 @@ to rebuild `supabase/seed.sql`. Never hand-edit seed.sql.
 `.env` is git-ignored and must stay that way. It holds:
 - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` — public by design (they ship
   to the browser); RLS is what protects data.
-- `SUPABASE_DB_URL` (contains the DB password) and `ADMIN_PASSWORD` — used
-  only by `npm run db:setup` on the local machine. Never prefix with `VITE_`
+- `SUPABASE_DB_URL` (contains the DB password), `ADMIN_PASSWORD` and
+  `TEACHER_PIN` — used only by `npm run db:setup` on the local machine. Never prefix with `VITE_`
   (that would ship them to every visitor), never commit, never paste in chat.
 
 ## Hosting

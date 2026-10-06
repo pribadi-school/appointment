@@ -1,0 +1,22 @@
+# Hostinger / Apache / LiteSpeed settings for the built app (copied into dist/).
+
+# Single-page app: send every URL that isn't a real file (/board, /admin, ...)
+# to index.html so refreshing or opening a shared link works.
+# "RewriteEngine On" here also stops the main site's WordPress rules in the
+# parent folder from applying to this subdomain.
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+	RewriteBase /
+	RewriteRule ^index\.html$ - [L]
+	RewriteCond %{REQUEST_FILENAME} !-f
+	RewriteCond %{REQUEST_FILENAME} !-d
+	RewriteRule . /index.html [L]
+</IfModule>
+
+# Always re-check index.html so a new upload shows up immediately. The files in
+# assets/ have a fingerprint in their name, so they can be cached safely.
+<IfModule mod_headers.c>
+	<FilesMatch "^index\.html$">
+		Header set Cache-Control "no-cache"
+	</FilesMatch>
+</IfModule>

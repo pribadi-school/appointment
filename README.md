@@ -110,19 +110,20 @@ can't build the app, so the built files live on a separate GitHub branch,
 1. Commit and push your changes to `main`.
 2. Run `npm run deploy`. It checks `.env` has the real Supabase keys, builds,
    and pushes the build to the `deploy` branch.
-3. cPanel → **Git™ Version Control** → **Manage** → **Pull or Deploy** →
-   **Update from Remote**, then **Deploy HEAD Commit**. The `.cpanel.yml` in
-   the branch copies the files into `public_html/report`.
+3. cPanel → **Terminal**:
 
-**One-time setup in cPanel**
+   ```bash
+   cd ~/repositories/appointment && git pull && bash deploy.sh
+   ```
 
-1. **Git™ Version Control** → **Create**.
-2. Clone a Repository: on. Clone URL:
-   `https://github.com/pribadi-school/appointment.git`
-3. Repository Path: `repositories/appointment` (outside `public_html`).
-4. Create, then **Manage** → **Basic Information** → Checked-Out Branch:
-   `deploy` → Update.
-5. **Pull or Deploy** → **Deploy HEAD Commit**.
+   `deploy.sh` (in the branch) copies the files into `public_html/report`.
+
+**One-time setup** — cPanel → **Terminal**, clone the branch outside
+`public_html` (so `.git` is never served):
+
+```bash
+git clone -b deploy --single-branch https://github.com/pribadi-school/appointment.git ~/repositories/appointment
+```
 
 The `.htaccess` in the build makes links like `/board` work on refresh.
 Other hosts work too: build command `npm run build`, output folder `dist`,

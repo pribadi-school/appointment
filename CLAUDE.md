@@ -68,6 +68,24 @@ to rebuild `supabase/seed.sql`. Never hand-edit seed.sql.
   only by `npm run db:setup` on the local machine. Never prefix with `VITE_`
   (that would ship them to every visitor), never commit, never paste in chat.
 
+## Hosting
+
+Hosted on the school's own Hostinger account as **report.pribadidepok.sch.id**
+(subdomain folder `public_html/report`), not on Vercel. The database stays on
+Supabase. There is no git deploy for it: the build is uploaded by hand.
+
+To release a change:
+1. `.env` must have the real `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`
+   *before* building — Vite bakes them into the files. Built with them empty,
+   the live site silently runs in demo mode (nothing shared between phones).
+2. `npm run build`, then zip the *contents* of `dist/` (including the hidden
+   `.htaccess`, which makes /board, /admin work on refresh).
+3. Hostinger File Manager → `public_html/report` → upload the zip → Extract
+   (overwrite) → delete the zip.
+
+Supabase free projects pause after 7 days without activity: open the
+Supabase dashboard a few days before the event and resume it if paused.
+
 ## Everyday commands
 
 | Command | Use |

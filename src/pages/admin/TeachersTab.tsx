@@ -8,6 +8,7 @@ import { isLeadershipRole, parseHomeroom } from '../../data/seedTeachers';
 import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { avatarText, classLabel } from '../../lib/teachers';
+import { scheduleFor, slotStarts, teacherSchedule } from '../../lib/time';
 import { CLASSES, SD_CLASSES, type Level, type Teacher } from '../../lib/types';
 import { useAdmin } from './AdminPage';
 
@@ -15,6 +16,7 @@ const NEW: Teacher = {
   id: '',
   name: '',
   level: 'smp_sma',
+  slotCount: null,
   subject: null,
   grades: [],
   role: null,
@@ -119,6 +121,36 @@ export function TeachersTab() {
       {editing && <TeacherSheet teacher={editing} onClose={() => setEditing(null)} />}
       {rooms && <RoomsSheet onClose={() => setRooms(false)} />}
     </>
+  );
+}
+
+/** Optional own number of slots (e.g. a big class). Empty = the level's usual times. */
+function SlotCountField({ f, onChange }: { f: Teacher; onChange: (n: number | null) => void }) {
+  const { t } = useI18n();
+  const { settings } = useLive();
+  if (!settings) return null;
+  const level = scheduleFor(settings, f.level);
+  const own = teacherSchedule(settings, f);
+  const hhmm = (s: string) => s.replace(':', '.');
+  return (
+    <Field
+      label={t('a_t_slots')}
+      type="number"
+      inputMode="numeric"
+      min={1}
+      max={96}
+      placeholder={String(slotStarts(level).length)}
+      value={f.slotCount ?? ''}
+      onChange={(e) => {
+        const n = parseInt(e.target.value, 10);
+        onChange(Number.isFinite(n) && n > 0 ? Math.min(n, 96) : null);
+      }}
+      hint={
+        f.slotCount
+          ? t('a_t_slotsSet', { start: hhmm(own.dayStart), end: hhmm(own.dayEnd), n: own.slotMinutes })
+          : t('a_t_slotsDefault', { start: hhmm(level.dayStart), end: hhmm(level.dayEnd) })
+      }
+    />
   );
 }
 
@@ -252,6 +284,7 @@ function TeacherSheet({ teacher, onClose }: { teacher: Teacher; onClose: () => v
             </div>
           </>
         )}
+        <SlotCountField f={f} onChange={(n) => set('slotCount', n)} />
         <div className="flex items-center justify-between gap-3 rounded-md bg-surface-page px-4 py-3">
           <span className="text-sm font-semibold text-foreground">{t('a_t_available')}</span>
           <Switch checked={f.available} onChange={(v) => set('available', v)} label={t('a_t_available')} />

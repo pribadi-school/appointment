@@ -74,6 +74,11 @@ alter table public.teachers add constraint teachers_level_check check (level in 
 alter table public.teachers drop constraint if exists teachers_homeroom_class_check;
 alter table public.teachers add constraint teachers_homeroom_class_check
   check (homeroom_class ~ '^((7|8|9|10|11|12)[A-Z]|[1-6])$');
+-- Optional number of slots for this teacher/class (e.g. a big SD class gets
+-- 20 slots from 08.00 instead of the level's 08.00–12.00). Null = the level's day.
+alter table public.teachers add column if not exists slot_count int;
+alter table public.teachers drop constraint if exists teachers_slot_count_check;
+alter table public.teachers add constraint teachers_slot_count_check check (slot_count between 1 and 96);
 alter table public.teachers drop constraint if exists teachers_level_class_check;
 alter table public.teachers add constraint teachers_level_class_check check (
   (level = 'sd' and homeroom_class ~ '^[1-6]$')
@@ -238,9 +243,11 @@ language sql stable set search_path = '' as $$
 $$;
 
 -- Is this timestamp the start of a slot on the event day, on this level's grid?
+-- p_count = the teacher's own number of slots from the level's start (null =
+-- the level's start–end window).
 -- (Replaces the older one-argument version, which only knew SMP–SMA.)
 drop function if exists private.is_valid_slot(timestamptz);
-create or replace function private.is_valid_slot(p_slot timestamptz, p_level text) returns boolean
+create or replace function private.is_valid_slot(p_slot timestamptz, p_level text, p_count int) returns boolean
 language plpgsql stable set search_path = '' as $$
 declare
   s        public.settings;
@@ -264,10 +271,26 @@ begin
     d_end   := extract(hour from s.day_end)::int * 60 + extract(minute from s.day_end)::int;
     len     := s.slot_minutes;
   end if;
+  if p_count is not null then
+    return t_min >= d_start
+       and (t_min - d_start) % len = 0
+       and (t_min - d_start) / len < p_count;
+  end if;
   return t_min >= d_start
      and t_min + len <= d_end
      and (t_min - d_start) % len = 0;
 end $$;
+
+create or replace function private.is_valid_slot(p_slot timestamptz, p_level text) returns boolean
+language sql stable set search_path = '' as $$
+  select private.is_valid_slot(p_slot, p_level, null::int)
+$$;
+
+-- Is this a slot of this teacher (their level's grid and their own slot count)?
+create or replace function private.teacher_slot_ok(p_teacher uuid, p_slot timestamptz) returns boolean
+language sql stable set search_path = '' as $$
+  select coalesce((select private.is_valid_slot(p_slot, level, slot_count) from public.teachers where id = p_teacher), false)
+$$;
 
 -- Does a child's class belong to this level? SD: '1'…'6'; SMP–SMA: '7A'…'12Z'.
 create or replace function private.class_fits_level(p_class text, p_level text) returns boolean
@@ -356,7 +379,7 @@ begin
   if not private.class_fits_level(p_child_class, v_level) then
     raise exception 'INVALID_INPUT';
   end if;
-  if not private.is_valid_slot(p_slot_start, v_level) then
+  if not private.teacher_slot_ok(p_teacher_id, p_slot_start) then
     raise exception 'INVALID_SLOT';
   end if;
   if v_phone is not null then
@@ -692,7 +715,7 @@ begin
   if not found then
     raise exception 'NOT_FOUND';
   end if;
-  if not private.is_valid_slot(p_slot_start, v_level) then
+  if not private.teacher_slot_ok(p_teacher_id, p_slot_start) then
     raise exception 'INVALID_SLOT';
   end if;
   if v_row.kind = 'booking' and not private.class_fits_level(v_row.child_class, v_level) then
@@ -739,7 +762,7 @@ create or replace function public.admin_block_slot(p_token text, p_teacher_id uu
 language plpgsql security definer set search_path = '' as $$
 begin
   perform private.require_session(p_token, 'admin');
-  if not private.is_valid_slot(p_slot_start, (select level from public.teachers where id = p_teacher_id)) then
+  if not private.teacher_slot_ok(p_teacher_id, p_slot_start) then
     raise exception 'INVALID_SLOT';
   end if;
   begin
@@ -757,6 +780,7 @@ declare
   v_id     uuid := nullif(p_teacher->>'id', '')::uuid;
   v_grades int[] := coalesce(array(select json_array_elements_text(coalesce(p_teacher->'grades', '[]'::json))::int), '{}');
   v_level  text := coalesce(nullif(p_teacher->>'level', ''), 'smp_sma');
+  v_count  int  := nullif(p_teacher->>'slotCount', '')::int;
 begin
   perform private.require_session(p_token, 'admin');
   if length(btrim(coalesce(p_teacher->>'name', ''))) < 2 or v_level not in ('sd', 'smp_sma') then
@@ -767,7 +791,7 @@ begin
     raise exception 'INVALID_INPUT';
   end if;
   if v_id is null then
-    insert into public.teachers (name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level)
+    insert into public.teachers (name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level, slot_count)
     values (
       btrim(p_teacher->>'name'),
       nullif(btrim(coalesce(p_teacher->>'subject', '')), ''),
@@ -778,7 +802,8 @@ begin
       nullif(btrim(coalesce(p_teacher->>'room', '')), ''),
       coalesce((p_teacher->>'available')::boolean, true),
       coalesce((p_teacher->>'sortOrder')::int, (select coalesce(max(sort_order), 0) + 1 from public.teachers)),
-      v_level
+      v_level,
+      v_count
     )
     returning id into v_id;
   else
@@ -792,7 +817,8 @@ begin
       room           = nullif(btrim(coalesce(p_teacher->>'room', '')), ''),
       available      = coalesce((p_teacher->>'available')::boolean, true),
       sort_order     = coalesce((p_teacher->>'sortOrder')::int, sort_order),
-      level          = v_level
+      level          = v_level,
+      slot_count     = v_count
     where id = v_id;
     if not found then
       raise exception 'NOT_FOUND';
@@ -801,7 +827,7 @@ begin
     -- or with a child of the other level.
     if exists (
       select 1 from private.bookings b where b.teacher_id = v_id
-        and (not private.is_valid_slot(b.slot_start, v_level)
+        and (not private.teacher_slot_ok(v_id, b.slot_start)
              or (b.kind = 'booking' and not private.class_fits_level(b.child_class, v_level)))
     ) then
       raise exception 'SCHEDULE_CONFLICT';
@@ -860,7 +886,7 @@ begin
   where id = 1;
   if exists (
     select 1 from private.bookings b join public.teachers t on t.id = b.teacher_id
-    where not private.is_valid_slot(b.slot_start, t.level)
+    where not private.is_valid_slot(b.slot_start, t.level, t.slot_count)
   ) then
     raise exception 'SCHEDULE_CONFLICT';  -- rolls back everything above
   end if;

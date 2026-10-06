@@ -51,8 +51,6 @@ const en = {
   nav_board: 'Live board',
   nav_teacher: 'Teacher',
   nav_admin: 'Admin',
-  imTeacher: "I'm a teacher",
-  imParent: "I'm a parent",
 
   // Home: greeting + level choice
   home_hello: 'Welcome, Ayah & Bunda!',
@@ -253,6 +251,9 @@ const en = {
   a_editTeacher: 'Edit teacher',
   a_t_name: 'Full name',
   a_t_level: 'Level',
+  a_t_slots: 'Number of slots',
+  a_t_slotsDefault: 'Empty = the usual times, {start} – {end}. Enter a number for a bigger or smaller class.',
+  a_t_slotsSet: '{start} – {end}, {n} min each.',
   a_t_nameSd: 'Homeroom teachers (both names)',
   a_t_sdClass: 'Class',
   a_lvl_all: 'All',
@@ -381,8 +382,6 @@ const id: Record<MessageKey, string> = {
   nav_board: 'Papan langsung',
   nav_teacher: 'Guru',
   nav_admin: 'Admin',
-  imTeacher: 'Saya guru',
-  imParent: 'Saya orang tua',
 
   home_hello: 'Selamat datang, Ayah & Bunda!',
   home_body: 'Terima kasih telah hadir di Hari Pembagian Rapor Sekolah Pribadi Depok. Pesan waktu konsultasi singkat dengan guru putra-putri Anda. Hanya butuh kurang dari satu menit.',
@@ -576,6 +575,9 @@ const id: Record<MessageKey, string> = {
   a_editTeacher: 'Ubah guru',
   a_t_name: 'Nama lengkap',
   a_t_level: 'Jenjang',
+  a_t_slots: 'Jumlah slot',
+  a_t_slotsDefault: 'Kosong = jam biasa, {start} – {end}. Isi angka untuk kelas yang lebih besar atau kecil.',
+  a_t_slotsSet: '{start} – {end}, masing-masing {n} menit.',
   a_t_nameSd: 'Wali kelas (kedua nama)',
   a_t_sdClass: 'Kelas',
   a_lvl_all: 'Semua',

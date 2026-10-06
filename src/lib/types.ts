@@ -21,6 +21,8 @@ export type Teacher = {
   name: string;
   /** SD records are one per class, named after its two homeroom teachers. */
   level: Level;
+  /** Own number of slots from the level's start (a bigger class gets more); null = the level's day. */
+  slotCount: number | null;
   subject: string | null;
   grades: number[]; // empty = every grade
   role: string | null;

@@ -88,7 +88,8 @@ test('SD (English): class → 15-minute time from 08.00 → confirm → booked',
 
   await expect(page.getByRole('heading', { name: 'Confirm' })).toBeVisible();
   await expect(page.getByText('08.30 – 08.45')).toBeVisible();
-  await expect(page.getByText('Classroom 3')).toBeVisible();
+  // SD room = the class name.
+  await expect(page.getByRole('definition').filter({ hasText: /^Grade 3$/ })).toBeVisible();
   await expect(page.getByText(/Nadia Putri · Grade 3/)).toBeVisible();
   await expectNoHorizontalScroll(page);
   await shot(page, '3-sd-confirm-en');

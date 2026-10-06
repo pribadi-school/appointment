@@ -11,7 +11,7 @@
  */
 import { parseSeed } from '../../data/seedTeachers';
 import { childKey, firstNameKey, normalizePhone } from '../phone';
-import { jakartaTime, minutesFor, overlaps, scheduleFor, slotStarts } from '../time';
+import { jakartaTime, minutesFor, overlaps, slotStarts, teacherSchedule } from '../time';
 import { AppError, classesFor, levelOfClass, type Booking, type Settings, type Teacher } from '../types';
 import { KEYS, load, save } from '../storage';
 import type { Api, BookInput, LiveTopic } from './api';
@@ -47,7 +47,7 @@ function freshDb(): Db {
   if (!isTest) {
     let n = 0;
     for (const t of teachers.filter((t) => t.available)) {
-      for (const s of slotStarts(scheduleFor(settings, t.level))) {
+      for (const s of slotStarts(teacherSchedule(settings, t))) {
         if (Math.random() < 0.32) {
           const child = DEMO_NAMES[n % DEMO_NAMES.length];
           db.bookings.push(demoBooking(t, s, child, n));
@@ -100,7 +100,7 @@ function write(db: Db, topic: LiveTopic) {
 }
 
 function isValidSlot(db: Db, slot: number, teacher: Teacher | undefined) {
-  return Boolean(teacher) && slotStarts(scheduleFor(db.settings, teacher!.level)).includes(slot);
+  return Boolean(teacher) && slotStarts(teacherSchedule(db.settings, teacher!)).includes(slot);
 }
 
 /** Same as private.parent_overlaps(): any overlap counts (SD and SMP–SMA slot lengths differ). */
@@ -189,7 +189,7 @@ function startSimulation() {
     const db = read();
     const free: [Teacher, number][] = [];
     for (const t of db.teachers.filter((t) => t.available))
-      for (const s of slotStarts(scheduleFor(db.settings, t.level)))
+      for (const s of slotStarts(teacherSchedule(db.settings, t)))
         if (s > Date.now() && !db.bookings.some((b) => b.teacherId === t.id && b.slotStart === s)) free.push([t, s]);
     if (!free.length) return;
     const [teacher, slot] = free[Math.floor(Math.random() * free.length)];
@@ -363,6 +363,7 @@ export function createDemoApi(): Api {
       if (
         t.name.trim().length < 2 ||
         grades.some((g) => (level === 'sd' ? g < 1 || g > 6 : g < 7 || g > 12)) ||
+        (t.slotCount != null && (!Number.isInteger(t.slotCount) || t.slotCount < 1 || t.slotCount > 96)) ||
         (level === 'sd' ? !homeroom || levelOfClass(homeroom) !== 'sd' : homeroom !== null && levelOfClass(homeroom) !== 'smp_sma')
       ) {
         throw new AppError('INVALID_INPUT');
@@ -370,6 +371,7 @@ export function createDemoApi(): Api {
       const clean: Omit<Teacher, 'id' | 'sortOrder'> = {
         name: t.name.trim(),
         level,
+        slotCount: t.slotCount ?? null,
         subject: t.subject?.trim() || null,
         grades: t.grades ?? [],
         role: t.role?.trim() || null,

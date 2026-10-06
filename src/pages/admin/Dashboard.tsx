@@ -6,7 +6,7 @@ import { api } from '../../lib/api';
 import { useI18n } from '../../lib/i18n';
 import { useLive, useNow } from '../../lib/live';
 import { classLabel } from '../../lib/teachers';
-import { currentSlotIndex, fmtTime, scheduleFor, slotStarts } from '../../lib/time';
+import { currentSlotIndex, fmtTime, levelGridStarts, scheduleFor, slotStarts, teacherSchedule } from '../../lib/time';
 import type { Booking, Level, Teacher } from '../../lib/types';
 import { useAdmin } from './AdminPage';
 import { SlotSheet } from './SlotSheet';
@@ -34,7 +34,7 @@ export function Dashboard() {
   if (!settings || !bookings) return <Skeleton className="h-[60vh] rounded-lg" />;
 
   const real = bookings.filter((b) => b.kind === 'booking');
-  const totalSlots = teachers.filter((x) => x.available).reduce((n, x) => n + slotStarts(scheduleFor(settings, x.level)).length, 0);
+  const totalSlots = teachers.filter((x) => x.available).reduce((n, x) => n + slotStarts(teacherSchedule(settings, x)).length, 0);
   const stats = [
     { label: t('a_stat_booked'), value: real.length },
     { label: t('a_stat_done'), value: real.filter((b) => b.status === 'done').length },
@@ -77,7 +77,7 @@ export function Dashboard() {
               key={level}
               title={t(level === 'sd' ? 'lvl_sd' : 'lvl_smp')}
               teachers={list}
-              starts={slotStarts(sch)}
+              starts={levelGridStarts(settings, level, list)}
               minutes={sch.slotMinutes}
               map={map}
               onOpen={(teacherId, slotStart) => setOpen({ teacherId, slotStart })}
@@ -108,6 +108,7 @@ function LevelGrid({
 }) {
   const { t } = useI18n();
   const { now } = useNow(15_000);
+  const { settings } = useLive();
   const scroller = useRef<HTMLDivElement>(null);
   const current = currentSlotIndex(starts, minutes, now);
 
@@ -168,6 +169,9 @@ function LevelGrid({
                     </span>
                   </th>
                   {starts.map((s, i) => {
+                    // Past this class/teacher's own slot count: not on their schedule.
+                    if (settings && !slotStarts(teacherSchedule(settings, teacher)).includes(s))
+                      return <td key={s} className="border-b border-border p-0.5" aria-hidden />;
                     const b = map.get(`${teacher.id}|${s}`);
                     return (
                       <td key={s} className={cx('border-b border-border p-0.5', i === current && 'bg-action-tint')}>

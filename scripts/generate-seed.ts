@@ -15,12 +15,12 @@ export function buildSeedSql(): string {
       .map(
         (t) =>
           `  (${q(t.name)}, ${q(t.subject)}, '{${t.grades.join(',')}}'::int[], ${q(t.role)}, ${q(t.homeroomClass)}, ` +
-          `${t.isLeadership}, ${q(t.room)}, ${t.available}, ${t.sortOrder}, '${level}')`,
+          `${t.isLeadership}, ${q(t.room)}, ${t.available}, ${t.sortOrder}, '${level}', ${t.slotCount ?? 'null::int'})`,
       );
-    return `insert into public.teachers (name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level)
+    return `insert into public.teachers (name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level, slot_count)
 select * from (values
 ${rows.join(',\n')}
-) as v(name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level)
+) as v(name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level, slot_count)
 where not exists (select 1 from public.teachers where level = '${level}');
 `;
   };

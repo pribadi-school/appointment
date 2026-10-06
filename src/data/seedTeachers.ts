@@ -50,15 +50,15 @@ Muslim Mughofar, S.E. ; PPKn - History ; - ; School Culture (Boys)
 /**
  * Primary school (SD): one bookable record per class, named after the class's
  * two homeroom teachers (they sit together and share one schedule).
- * Format per line:  grade ; teacher names
+ * Format per line:  grade ; teacher names ; number of slots ("-" = the SD day)
  */
 export const SD_RAW = `
-1 ; Setyaningsih, S.Pd. & Aqila Rahmi Fauziyyah, S.Pd.
-2 ; Humaida Shofya Az Zahra, S.Pd., Gr. & Selvia Noviani, S.Pd., Gr.
-3 ; Arinda Lailatul Karimah, M.Pd. & Bekti Nuryati, S.Ag., S.Pd.
-4 ; Gunadi Wicahya, S.S. & Dwi Anjani Hastari, S.Pd., Gr.
-5 ; Rahmadhanur Fitri, S.Pd. & Bahr'u Akbar, S.Psi
-6 ; Rizqiah Nurbaiti, S.Pd., Gr. & Fikri Nabhani, S.Pd.
+1 ; Setyaningsih, S.Pd. & Aqila Rahmi Fauziyyah, S.Pd. ; -
+2 ; Humaida Shofya Az Zahra, S.Pd., Gr. & Selvia Noviani, S.Pd., Gr. ; -
+3 ; Arinda Lailatul Karimah, M.Pd. & Bekti Nuryati, S.Ag., S.Pd. ; 16
+4 ; Gunadi Wicahya, S.S. & Dwi Anjani Hastari, S.Pd., Gr. ; -
+5 ; Rahmadhanur Fitri, S.Pd. & Bahr'u Akbar, S.Psi ; 20
+6 ; Rizqiah Nurbaiti, S.Pd., Gr. & Fikri Nabhani, S.Pd. ; 19
 `;
 
 /** Teachers seeded as not available (hidden from parents). */
@@ -98,6 +98,8 @@ export const ROOM_BY_SUBJECT: Record<string, string> = {
 export type SeedTeacher = {
   name: string;
   level: 'sd' | 'smp_sma';
+  /** Own number of slots from the level's start; null = the level's day. */
+  slotCount: number | null;
   subject: string | null;
   grades: number[];
   role: string | null;
@@ -132,6 +134,7 @@ export function parseSeed(): SeedTeacher[] {
     out.push({
       name: name.trim(),
       level: 'smp_sma',
+      slotCount: null,
       subject,
       grades: (empty(gradesRaw) ?? '').split(',').map((g) => parseInt(g, 10)).filter((g) => g >= 7 && g <= 12),
       role,
@@ -148,6 +151,7 @@ export function parseSeed(): SeedTeacher[] {
     out.push({
       name: name.trim(),
       level: 'smp_sma',
+      slotCount: null,
       subject,
       grades: [],
       role: null,
@@ -159,17 +163,19 @@ export function parseSeed(): SeedTeacher[] {
     });
   }
   for (const line of lines(SD_RAW)) {
-    const [gradeRaw, names] = line.split(';');
+    const [gradeRaw, names, countRaw] = line.split(';');
     const grade = gradeRaw.trim();
+    const count = empty(countRaw);
     out.push({
       name: names.trim(),
       level: 'sd',
+      slotCount: count ? Number(count) : null,
       subject: null,
       grades: [Number(grade)],
       role: null,
       homeroomClass: grade,
       isLeadership: false,
-      room: `Classroom ${grade}`, // PLACEHOLDER — rename from the Admin page
+      room: `Grade ${grade}`, // SD rooms are named after the class; rename from the Admin page if needed
       available: true,
       sortOrder: out.length + 1,
     });

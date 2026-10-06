@@ -4,8 +4,7 @@
  * highlighted from the clock and scrolled into view.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
-import { Ban, Check, ChevronDown, LogOut, MapPin, MessageCircle, Search, Users, UserX } from 'lucide-react';
+import { Ban, Check, ChevronDown, LogOut, MapPin, MessageCircle, Search, UserX } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { Header } from '../components/Header';
 import { useToast } from '../components/Toast';
@@ -16,7 +15,7 @@ import { useLive, useNow } from '../lib/live';
 import { formatPhone } from '../lib/phone';
 import { KEYS, load, save } from '../lib/storage';
 import { avatarText, classLabel } from '../lib/teachers';
-import { currentSlotIndex, fmtRange, scheduleFor, slotStarts } from '../lib/time';
+import { currentSlotIndex, fmtRange, slotStarts, teacherSchedule } from '../lib/time';
 import { errorCode, type Booking, type ErrorCode, type Session } from '../lib/types';
 import { waLink } from '../lib/whatsapp';
 
@@ -108,16 +107,6 @@ function TeacherLogin({ onSignIn }: { onSignIn: (s: Session) => void }) {
             {t('tv_signIn')}
           </Button>
         </form>
-
-        <div className="mt-10 flex justify-center border-t border-border pt-6">
-          <Link
-            to="/"
-            className={buttonClass('secondary', 'md')}
-          >
-            <Users className="size-5" aria-hidden />
-            {t('imParent')}
-          </Link>
-        </div>
       </main>
 
       <BottomSheet open={sheet} onClose={() => setSheet(false)} title={t('tv_chooseName')}>
@@ -190,7 +179,7 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
   }, [fetchSchedule, version]);
 
   // The teacher's own level decides the times (SD and SMP–SMA differ).
-  const sch = settings && teacher ? scheduleFor(settings, teacher.level) : null;
+  const sch = settings && teacher ? teacherSchedule(settings, teacher) : null;
   const starts = useMemo(() => (sch ? slotStarts(sch) : []), [sch?.dayStart, sch?.dayEnd, sch?.slotMinutes, sch?.eventDate]); // eslint-disable-line react-hooks/exhaustive-deps
   const minutes = sch?.slotMinutes ?? 10;
   const current = currentSlotIndex(starts, minutes, now);

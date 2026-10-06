@@ -8,7 +8,7 @@ import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { formatPhone } from '../../lib/phone';
 import { classLabel } from '../../lib/teachers';
-import { fmtRange, fmtTime, scheduleFor, slotStarts } from '../../lib/time';
+import { fmtRange, fmtTime, scheduleFor, slotStarts, teacherSchedule } from '../../lib/time';
 import { classesFor } from '../../lib/types';
 import { useAdmin } from './AdminPage';
 
@@ -172,7 +172,7 @@ export function SlotSheet({ teacherId, slotStart, onClose }: { teacherId: string
               label={t('a_moveTime')}
               value={moveTime}
               onChange={setMoveTime}
-              options={slotStarts(scheduleFor(settings, moveTarget.level)).map((s) => ({
+              options={slotStarts(teacherSchedule(settings, moveTarget)).map((s) => ({
                 value: String(s),
                 label: `${fmtTime(s)}${taken.has(String(s)) ? ` (${t('st_taken')})` : ''}`,
                 disabled: taken.has(String(s)),

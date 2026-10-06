@@ -147,7 +147,7 @@ and an SPA fallback to `index.html`.
    or on the dashboard.
 2. **Teachers → Rooms by subject**: replace the placeholder room names with
    the real ones. You can also edit any single teacher's room. SD classes
-   ("Classroom 1" … "Classroom 6" placeholders) are edited one by one: filter
+   (rooms "Grade 1" … "Grade 6") are edited one by one: filter
    by **SD**, then edit the class.
 3. **QR code**: print the poster and share the link in parent WhatsApp groups.
 

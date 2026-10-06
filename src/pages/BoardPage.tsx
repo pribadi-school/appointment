@@ -9,7 +9,7 @@ import { Header } from '../components/Header';
 import { Card, PulseDot, Segmented, Skeleton, cx } from '../components/ui';
 import { useI18n } from '../lib/i18n';
 import { slotKey, useLive, useNow } from '../lib/live';
-import { currentSlotIndex, fmtDate, fmtRange, fmtTime, jakartaDate, scheduleFor, slotStarts, slotState, type SlotState } from '../lib/time';
+import { currentSlotIndex, fmtDate, fmtRange, fmtTime, jakartaDate, levelGridStarts, scheduleFor, slotStarts, slotState, teacherSchedule, type SlotState } from '../lib/time';
 import type { Level, Teacher } from '../lib/types';
 
 type View = 'grid' | 'rooms';
@@ -51,7 +51,9 @@ export default function BoardPage() {
       settings
         ? LEVELS.map((level) => {
             const sch = scheduleFor(settings, level);
-            return { level, starts: slotStarts(sch), minutes: sch.slotMinutes, teachers: visible.filter((x) => x.level === level) };
+            const list = visible.filter((x) => x.level === level);
+            // Stretched to the class/teacher with the most slots.
+            return { level, starts: levelGridStarts(settings, level, list), minutes: sch.slotMinutes, teachers: list };
           })
         : [],
     [settings, visible],
@@ -158,7 +160,7 @@ function useStatusLabels(): Record<SlotState, string> {
 /** One level's grid: teachers down, that level's slot times across. */
 function GridSection({ title, teachers, starts, minutes, now }: { title: string; teachers: Teacher[]; starts: number[]; minutes: number; now: number }) {
   const { t } = useI18n();
-  const { slots, flashing } = useLive();
+  const { slots, flashing, settings } = useLive();
   const statusLabel = useStatusLabels();
   const scroller = useRef<HTMLDivElement>(null);
   const current = currentSlotIndex(starts, minutes, now);
@@ -210,13 +212,17 @@ function GridSection({ title, teachers, starts, minutes, now }: { title: string;
               </tr>
             </thead>
             <tbody>
-              {teachers.map((teacher) => (
+              {teachers.map((teacher) => {
+                // Slots past this teacher's own count are not on their schedule.
+                const own = new Set(settings ? slotStarts(teacherSchedule(settings, teacher)) : starts);
+                return (
                 <tr key={teacher.id}>
                   <th scope="row" className="sticky left-0 z-10 max-w-36 border-b border-border bg-surface px-3 py-1.5 text-left font-normal sm:max-w-56">
                     <span className="block truncate text-sm font-bold text-foreground xl:text-sm">{teacher.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">{teacher.room ?? '-'}</span>
                   </th>
                   {starts.map((s, i) => {
+                    if (!own.has(s)) return <td key={s} className="border-b border-border p-0.5" aria-hidden />;
                     const st = state(teacher.id, s);
                     return (
                       <td key={s} className={cx('border-b border-border p-0.5', i === current && 'bg-action-tint')}>
@@ -236,7 +242,8 @@ function GridSection({ title, teachers, starts, minutes, now }: { title: string;
                     );
                   })}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -265,7 +272,7 @@ function RoomsView({ teachers, now }: { teachers: Teacher[]; now: number }) {
           <ul className="divide-y divide-border">
             {list.map((teacher) => {
               // Each teacher on their own level's grid.
-              const sch = scheduleFor(settings!, teacher.level);
+              const sch = teacherSchedule(settings!, teacher);
               const starts = slotStarts(sch);
               const current = currentSlotIndex(starts, sch.slotMinutes, now);
               const nowEntry = current >= 0 ? slots.get(slotKey(teacher.id, starts[current])) : undefined;

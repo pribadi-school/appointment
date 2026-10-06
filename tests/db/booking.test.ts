@@ -194,6 +194,23 @@ describe('primary school (SD)', () => {
     }
   });
 
+  it('a class with its own slot count: grade 5 has 20 slots (to 13.00), others keep 08.00–12.00', async () => {
+    const g5 = await sdTeacher(5);
+    const g1 = await sdTeacher(1);
+    expect((await c.query(`select slot_count from public.teachers where id = $1`, [g5])).rows[0].slot_count).toBe(20);
+    expect(await outcome(bookAs(g5, at('12:45'), '081255500001', 'Lima', '5'))).toBe('OK');
+    expect(await outcome(bookAs(g5, at('13:00'), '081255500002', 'Lima Dua', '5'))).toBe('INVALID_SLOT');
+    expect(await outcome(bookAs(g1, at('12:00'), '081255500003', 'Satu', '1'))).toBe('INVALID_SLOT');
+    // Lowering the count below an existing booking is refused.
+    await c.query(`select public.set_admin_password('correct horse')`);
+    const { token } = (await c.query(`select public.admin_login('correct horse') r`)).rows[0].r;
+    const t = (await c.query(`select row_to_json(x) r from (select id, name, level, grades, homeroom_class as "homeroomClass", room from public.teachers where id = $1) x`, [g5])).rows[0].r;
+    expect(await outcome(c.query('select public.admin_save_teacher($1, $2)', [token, { ...t, slotCount: 18 }]))).toBe('SCHEDULE_CONFLICT');
+    expect(await outcome(c.query('select public.admin_save_teacher($1, $2)', [token, { ...t, slotCount: 21 }]))).toBe('OK');
+    expect(await outcome(c.query('select public.admin_save_teacher($1, $2)', [token, { ...t, slotCount: 0 }]))).toBe('INVALID_INPUT');
+    await c.query('select public.admin_save_teacher($1, $2)', [token, { ...t, slotCount: 20 }]);
+  });
+
   it('admin: SD times are saved separately; a booking off the new SD grid is refused', async () => {
     await c.query(`select public.set_admin_password('correct horse')`);
     const { token } = (await c.query(`select public.admin_login('correct horse') r`)).rows[0].r;

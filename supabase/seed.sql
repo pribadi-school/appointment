@@ -3,57 +3,57 @@
 -- so it is safe to run again. After setup, edit teachers from the Admin page.
 
 -- SMP–SMA teachers
-insert into public.teachers (name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level)
+insert into public.teachers (name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level, slot_count)
 select * from (values
-  ('Ana Nur Maulida, B.Sc.', 'Religion', '{7,8,9,10,11,12}'::int[], '10A Homeroom Teacher', '10A', false, 'Religion Room', true, 1, 'smp_sma'),
-  ('Ildar Iakhin', 'Biology', '{10,11}'::int[], '10B Homeroom Teacher', '10B', false, 'Science Lab', true, 2, 'smp_sma'),
-  ('Nur Annisa, S.Pd.', 'Bahasa Indonesia', '{}'::int[], '11A Homeroom Teacher', '11A', false, 'Language Room', true, 3, 'smp_sma'),
-  ('Resky Ervaldi Saputra, B.Sc., M.T.', 'Chemistry', '{11,12}'::int[], '11B Homeroom Teacher, Research Project Coordinator', '11B', true, 'Science Lab', true, 4, 'smp_sma'),
-  ('Zalika Putri Intan Palupi', 'English', '{12}'::int[], '12A Homeroom Teacher', '12A', false, 'Language Room', true, 5, 'smp_sma'),
-  ('Muhammad Fadli, S.T.', null, '{}'::int[], '12B Homeroom Teacher', '12B', false, 'Classroom 12B', true, 6, 'smp_sma'),
-  ('Maulida Indri Nur Azizah, S.Pd.', 'Global Perspective - Business - IPS', '{7,8,9,10,11,12}'::int[], '7A Homeroom Teacher', '7A', false, 'Social Studies Room', true, 7, 'smp_sma'),
-  ('Muhammad Zuhri Agistian', 'Computing - ICT', '{7,8,9,10,11,12}'::int[], '7B Homeroom Teacher', '7B', false, 'Computer Lab', true, 8, 'smp_sma'),
-  ('Furqon Latif Hamdani, BA.', 'Religion', '{7,8,9,10,11,12}'::int[], '7C Homeroom Teacher', '7C', false, 'Religion Room', true, 9, 'smp_sma'),
-  ('Nadiatul Hikmah', 'Science', '{7,8}'::int[], '8A Homeroom Teacher', '8A', false, 'Science Lab', true, 10, 'smp_sma'),
-  ('Yusri Ramadhan', 'Bahasa Indonesia', '{8,10}'::int[], '8B Homeroom Teacher, OSIS Coordinator (Male)', '8B', true, 'Language Room', true, 11, 'smp_sma'),
-  ('Nairah Umpa Camid', 'English', '{9,11}'::int[], '9A Homeroom Teacher', '9A', false, 'Language Room', true, 12, 'smp_sma'),
-  ('Abdul Kadir Abdullah, S.E., M.Pd.', 'Sundanese', '{7,8,9,10,11,12}'::int[], '9B Homeroom Teacher', '9B', false, 'Language Room', true, 13, 'smp_sma'),
-  ('Aldila Nimas Savitri, S.Pd.', 'English', '{7,12}'::int[], 'Career Counselor (Girls)', null, true, 'Language Room', true, 14, 'smp_sma'),
-  ('Budi Effendi Nugroho, B.Sc.', 'Turkish', '{11}'::int[], 'Fathers Club', null, false, 'Language Room', true, 15, 'smp_sma'),
-  ('Umedjon Rustamov', 'Science', '{7,8}'::int[], 'Guidance Counselor', null, true, 'Science Lab', true, 16, 'smp_sma'),
-  ('Nur Amira Nugroho', 'Turkish', '{11}'::int[], 'Mothers Club', null, false, 'Language Room', true, 17, 'smp_sma'),
-  ('Ujang Irpan, S.Pd.', 'Mathematics', '{11,12}'::int[], 'Olympiad Coordinator', null, true, 'Mathematics Room', true, 18, 'smp_sma'),
-  ('Antinah', 'Physics - Mathematics', '{8,10}'::int[], 'Olympiad Coordinator', null, true, 'Mathematics Room', true, 19, 'smp_sma'),
-  ('Reza Audia', 'PPKn', '{9,10}'::int[], 'OSIS Coordinator (Female)', null, true, 'Social Studies Room', true, 20, 'smp_sma'),
-  ('Siti Masitoh, S.Mat', 'Mathematics', '{7}'::int[], 'School Culture (Girls)', null, false, 'Mathematics Room', true, 21, 'smp_sma'),
-  ('Bibit Wiyana, M.Pd.', 'PPKn', '{11,12}'::int[], 'SMA Principal', null, true, 'Social Studies Room', true, 22, 'smp_sma'),
-  ('Biadelma Nanda Illiandi, B.Sc., M.Sc.', 'Physics', '{9}'::int[], 'SMP Principal', null, true, 'Science Lab', true, 23, 'smp_sma'),
-  ('Midyeal Fioleta, M.Pd.', 'Bahasa Indonesia', '{7,9}'::int[], null, null, false, 'Language Room', true, 24, 'smp_sma'),
-  ('Alza Kirana Thaharah', 'Biology', '{9,10}'::int[], null, null, false, 'Science Lab', true, 25, 'smp_sma'),
-  ('Kevin Kaenji Wayoan, S.Psi, M.Sc', 'Career Counselor (Boys)', '{}'::int[], null, null, true, 'Counseling Room', true, 26, 'smp_sma'),
-  ('Eki Maulana, B.Sc., M.Si.', 'Chemistry', '{9}'::int[], null, null, false, 'Science Lab', true, 27, 'smp_sma'),
-  ('Irmaya Sari', 'Chemistry', '{10}'::int[], null, null, false, 'Science Lab', true, 28, 'smp_sma'),
-  ('Rayhan Baist', 'English', '{7,8}'::int[], null, null, false, 'Language Room', true, 29, 'smp_sma'),
-  ('Muhammad Mulyono', 'Music', '{7,8,9,10,11,12}'::int[], null, null, false, 'Arts Room', true, 30, 'smp_sma'),
-  ('Dhona Chindy Ferdiana', 'Physical Education (Female)', '{7,8,9,10,11,12}'::int[], null, null, false, 'Sports Hall', true, 31, 'smp_sma'),
-  ('Ewa Hilal Kamaluddin, S.Pd.', 'Physical Education (Male)', '{7,8,9,10,11,12}'::int[], null, null, false, 'Sports Hall', true, 32, 'smp_sma'),
-  ('Sutirto, S.Si., MT.', 'Physics - Mathematics', '{9,11,12}'::int[], null, null, false, 'Mathematics Room', true, 33, 'smp_sma'),
-  ('Qobul Imron Rosada, S.Sos.', 'PPKn', '{}'::int[], null, null, false, 'Social Studies Room', true, 34, 'smp_sma'),
-  ('Muslim Mughofar, S.E.', 'PPKn - History', '{}'::int[], 'School Culture (Boys)', null, false, 'Social Studies Room', true, 35, 'smp_sma'),
-  ('Selvia Noviani, S.Pd.', 'Art', '{}'::int[], null, null, false, 'Arts Room', false, 36, 'smp_sma'),
-  ('Muhammad Ishaq Nurdin', 'Mathematics', '{}'::int[], null, null, false, 'Mathematics Room', false, 37, 'smp_sma'),
-  ('Triyanda, S.Pd.', 'Religion', '{}'::int[], null, null, false, 'Religion Room', false, 38, 'smp_sma')
-) as v(name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level)
+  ('Ana Nur Maulida, B.Sc.', 'Religion', '{7,8,9,10,11,12}'::int[], '10A Homeroom Teacher', '10A', false, 'Religion Room', true, 1, 'smp_sma', null::int),
+  ('Ildar Iakhin', 'Biology', '{10,11}'::int[], '10B Homeroom Teacher', '10B', false, 'Science Lab', true, 2, 'smp_sma', null::int),
+  ('Nur Annisa, S.Pd.', 'Bahasa Indonesia', '{}'::int[], '11A Homeroom Teacher', '11A', false, 'Language Room', true, 3, 'smp_sma', null::int),
+  ('Resky Ervaldi Saputra, B.Sc., M.T.', 'Chemistry', '{11,12}'::int[], '11B Homeroom Teacher, Research Project Coordinator', '11B', true, 'Science Lab', true, 4, 'smp_sma', null::int),
+  ('Zalika Putri Intan Palupi', 'English', '{12}'::int[], '12A Homeroom Teacher', '12A', false, 'Language Room', true, 5, 'smp_sma', null::int),
+  ('Muhammad Fadli, S.T.', null, '{}'::int[], '12B Homeroom Teacher', '12B', false, 'Classroom 12B', true, 6, 'smp_sma', null::int),
+  ('Maulida Indri Nur Azizah, S.Pd.', 'Global Perspective - Business - IPS', '{7,8,9,10,11,12}'::int[], '7A Homeroom Teacher', '7A', false, 'Social Studies Room', true, 7, 'smp_sma', null::int),
+  ('Muhammad Zuhri Agistian', 'Computing - ICT', '{7,8,9,10,11,12}'::int[], '7B Homeroom Teacher', '7B', false, 'Computer Lab', true, 8, 'smp_sma', null::int),
+  ('Furqon Latif Hamdani, BA.', 'Religion', '{7,8,9,10,11,12}'::int[], '7C Homeroom Teacher', '7C', false, 'Religion Room', true, 9, 'smp_sma', null::int),
+  ('Nadiatul Hikmah', 'Science', '{7,8}'::int[], '8A Homeroom Teacher', '8A', false, 'Science Lab', true, 10, 'smp_sma', null::int),
+  ('Yusri Ramadhan', 'Bahasa Indonesia', '{8,10}'::int[], '8B Homeroom Teacher, OSIS Coordinator (Male)', '8B', true, 'Language Room', true, 11, 'smp_sma', null::int),
+  ('Nairah Umpa Camid', 'English', '{9,11}'::int[], '9A Homeroom Teacher', '9A', false, 'Language Room', true, 12, 'smp_sma', null::int),
+  ('Abdul Kadir Abdullah, S.E., M.Pd.', 'Sundanese', '{7,8,9,10,11,12}'::int[], '9B Homeroom Teacher', '9B', false, 'Language Room', true, 13, 'smp_sma', null::int),
+  ('Aldila Nimas Savitri, S.Pd.', 'English', '{7,12}'::int[], 'Career Counselor (Girls)', null, true, 'Language Room', true, 14, 'smp_sma', null::int),
+  ('Budi Effendi Nugroho, B.Sc.', 'Turkish', '{11}'::int[], 'Fathers Club', null, false, 'Language Room', true, 15, 'smp_sma', null::int),
+  ('Umedjon Rustamov', 'Science', '{7,8}'::int[], 'Guidance Counselor', null, true, 'Science Lab', true, 16, 'smp_sma', null::int),
+  ('Nur Amira Nugroho', 'Turkish', '{11}'::int[], 'Mothers Club', null, false, 'Language Room', true, 17, 'smp_sma', null::int),
+  ('Ujang Irpan, S.Pd.', 'Mathematics', '{11,12}'::int[], 'Olympiad Coordinator', null, true, 'Mathematics Room', true, 18, 'smp_sma', null::int),
+  ('Antinah', 'Physics - Mathematics', '{8,10}'::int[], 'Olympiad Coordinator', null, true, 'Mathematics Room', true, 19, 'smp_sma', null::int),
+  ('Reza Audia', 'PPKn', '{9,10}'::int[], 'OSIS Coordinator (Female)', null, true, 'Social Studies Room', true, 20, 'smp_sma', null::int),
+  ('Siti Masitoh, S.Mat', 'Mathematics', '{7}'::int[], 'School Culture (Girls)', null, false, 'Mathematics Room', true, 21, 'smp_sma', null::int),
+  ('Bibit Wiyana, M.Pd.', 'PPKn', '{11,12}'::int[], 'SMA Principal', null, true, 'Social Studies Room', true, 22, 'smp_sma', null::int),
+  ('Biadelma Nanda Illiandi, B.Sc., M.Sc.', 'Physics', '{9}'::int[], 'SMP Principal', null, true, 'Science Lab', true, 23, 'smp_sma', null::int),
+  ('Midyeal Fioleta, M.Pd.', 'Bahasa Indonesia', '{7,9}'::int[], null, null, false, 'Language Room', true, 24, 'smp_sma', null::int),
+  ('Alza Kirana Thaharah', 'Biology', '{9,10}'::int[], null, null, false, 'Science Lab', true, 25, 'smp_sma', null::int),
+  ('Kevin Kaenji Wayoan, S.Psi, M.Sc', 'Career Counselor (Boys)', '{}'::int[], null, null, true, 'Counseling Room', true, 26, 'smp_sma', null::int),
+  ('Eki Maulana, B.Sc., M.Si.', 'Chemistry', '{9}'::int[], null, null, false, 'Science Lab', true, 27, 'smp_sma', null::int),
+  ('Irmaya Sari', 'Chemistry', '{10}'::int[], null, null, false, 'Science Lab', true, 28, 'smp_sma', null::int),
+  ('Rayhan Baist', 'English', '{7,8}'::int[], null, null, false, 'Language Room', true, 29, 'smp_sma', null::int),
+  ('Muhammad Mulyono', 'Music', '{7,8,9,10,11,12}'::int[], null, null, false, 'Arts Room', true, 30, 'smp_sma', null::int),
+  ('Dhona Chindy Ferdiana', 'Physical Education (Female)', '{7,8,9,10,11,12}'::int[], null, null, false, 'Sports Hall', true, 31, 'smp_sma', null::int),
+  ('Ewa Hilal Kamaluddin, S.Pd.', 'Physical Education (Male)', '{7,8,9,10,11,12}'::int[], null, null, false, 'Sports Hall', true, 32, 'smp_sma', null::int),
+  ('Sutirto, S.Si., MT.', 'Physics - Mathematics', '{9,11,12}'::int[], null, null, false, 'Mathematics Room', true, 33, 'smp_sma', null::int),
+  ('Qobul Imron Rosada, S.Sos.', 'PPKn', '{}'::int[], null, null, false, 'Social Studies Room', true, 34, 'smp_sma', null::int),
+  ('Muslim Mughofar, S.E.', 'PPKn - History', '{}'::int[], 'School Culture (Boys)', null, false, 'Social Studies Room', true, 35, 'smp_sma', null::int),
+  ('Selvia Noviani, S.Pd.', 'Art', '{}'::int[], null, null, false, 'Arts Room', false, 36, 'smp_sma', null::int),
+  ('Muhammad Ishaq Nurdin', 'Mathematics', '{}'::int[], null, null, false, 'Mathematics Room', false, 37, 'smp_sma', null::int),
+  ('Triyanda, S.Pd.', 'Religion', '{}'::int[], null, null, false, 'Religion Room', false, 38, 'smp_sma', null::int)
+) as v(name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level, slot_count)
 where not exists (select 1 from public.teachers where level = 'smp_sma');
 
 -- SD classes (one record per class: its two homeroom teachers)
-insert into public.teachers (name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level)
+insert into public.teachers (name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level, slot_count)
 select * from (values
-  ('Setyaningsih, S.Pd. & Aqila Rahmi Fauziyyah, S.Pd.', null, '{1}'::int[], null, '1', false, 'Classroom 1', true, 39, 'sd'),
-  ('Humaida Shofya Az Zahra, S.Pd., Gr. & Selvia Noviani, S.Pd., Gr.', null, '{2}'::int[], null, '2', false, 'Classroom 2', true, 40, 'sd'),
-  ('Arinda Lailatul Karimah, M.Pd. & Bekti Nuryati, S.Ag., S.Pd.', null, '{3}'::int[], null, '3', false, 'Classroom 3', true, 41, 'sd'),
-  ('Gunadi Wicahya, S.S. & Dwi Anjani Hastari, S.Pd., Gr.', null, '{4}'::int[], null, '4', false, 'Classroom 4', true, 42, 'sd'),
-  ('Rahmadhanur Fitri, S.Pd. & Bahr''u Akbar, S.Psi', null, '{5}'::int[], null, '5', false, 'Classroom 5', true, 43, 'sd'),
-  ('Rizqiah Nurbaiti, S.Pd., Gr. & Fikri Nabhani, S.Pd.', null, '{6}'::int[], null, '6', false, 'Classroom 6', true, 44, 'sd')
-) as v(name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level)
+  ('Setyaningsih, S.Pd. & Aqila Rahmi Fauziyyah, S.Pd.', null, '{1}'::int[], null, '1', false, 'Grade 1', true, 39, 'sd', null::int),
+  ('Humaida Shofya Az Zahra, S.Pd., Gr. & Selvia Noviani, S.Pd., Gr.', null, '{2}'::int[], null, '2', false, 'Grade 2', true, 40, 'sd', null::int),
+  ('Arinda Lailatul Karimah, M.Pd. & Bekti Nuryati, S.Ag., S.Pd.', null, '{3}'::int[], null, '3', false, 'Grade 3', true, 41, 'sd', 16),
+  ('Gunadi Wicahya, S.S. & Dwi Anjani Hastari, S.Pd., Gr.', null, '{4}'::int[], null, '4', false, 'Grade 4', true, 42, 'sd', null::int),
+  ('Rahmadhanur Fitri, S.Pd. & Bahr''u Akbar, S.Psi', null, '{5}'::int[], null, '5', false, 'Grade 5', true, 43, 'sd', 20),
+  ('Rizqiah Nurbaiti, S.Pd., Gr. & Fikri Nabhani, S.Pd.', null, '{6}'::int[], null, '6', false, 'Grade 6', true, 44, 'sd', 19)
+) as v(name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level, slot_count)
 where not exists (select 1 from public.teachers where level = 'sd');

@@ -22,6 +22,25 @@ export function scheduleFor(s: Settings, level: Level): Schedule {
     : { eventDate: s.eventDate, dayStart: s.dayStart, dayEnd: s.dayEnd, slotMinutes: s.slotMinutes };
 }
 
+/** A teacher's own day: their level's, but `slotCount` slots long when set. */
+export function teacherSchedule(s: Settings, t: { level: Level; slotCount: number | null }): Schedule {
+  const sch = scheduleFor(s, t.level);
+  if (!t.slotCount) return sch;
+  const [h, m] = sch.dayStart.split(':').map(Number);
+  const end = h * 60 + m + t.slotCount * sch.slotMinutes;
+  return { ...sch, dayEnd: `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}` };
+}
+
+/** Slot starts for a whole level's grid: the level's day, stretched to the longest teacher in it. */
+export function levelGridStarts(s: Settings, level: Level, teachers: { level: Level; slotCount: number | null }[]): number[] {
+  let sch = scheduleFor(s, level);
+  for (const t of teachers) if (t.level === level) {
+    const own = teacherSchedule(s, t);
+    if (own.dayEnd > sch.dayEnd) sch = own;
+  }
+  return slotStarts(sch);
+}
+
 /** Slot length for a level. */
 export const minutesFor = (s: Settings, level: Level) => scheduleFor(s, level).slotMinutes;
 

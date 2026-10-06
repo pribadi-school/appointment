@@ -6,3 +6,5 @@ test-results
 playwright-report
 *.log
 .claude
+
+report-upload.zip

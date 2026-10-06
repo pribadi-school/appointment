@@ -131,5 +131,5 @@ Supabase dashboard a few days before the event and resume it if paused.
 - Times are always Asia/Jakarta (WIB), shown as `09.10`, whatever the
   visitor's phone timezone. Use the helpers in `src/lib/time.ts`.
 - Parents are on phones: check every change at 360px wide.
-- Event date (default 19 Dec 2026) and room names are placeholders, changed
+- Event date (default 17 Oct 2026) and room names are placeholders, changed
   from the Admin page, not in code.

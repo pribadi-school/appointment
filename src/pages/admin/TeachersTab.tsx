@@ -92,11 +92,11 @@ export function TeachersTab() {
               <p className="truncate text-sm text-muted-foreground">
                 {x.level === 'sd'
                   ? `${t('lvl_sd')} · ${classLabel(x.homeroomClass, t)}`
-                  : `${x.subject ?? '—'} · ${x.grades.length ? x.grades.join(', ') : '7–12'}`}
+                  : `${x.subject ?? '-'} · ${x.grades.length ? x.grades.join(', ') : '7–12'}`}
               </p>
               <p className="truncate text-sm text-muted-foreground">
                 <MapPin className="mr-0.5 inline size-3" aria-hidden />
-                {x.room ?? '—'}
+                {x.room ?? '-'}
                 {x.homeroomClass && x.level === 'smp_sma' && ` · ${t('a_t_homeroom')} ${x.homeroomClass}`}
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">

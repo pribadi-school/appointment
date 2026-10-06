@@ -97,7 +97,7 @@ export function MySchedulePage() {
 
   const byId = new Map(teachers.map((x) => [x.id, x]));
   const showLookup = !query || (list && list.length === 0 && !loading);
-  const teacherName = (b: Booking) => byId.get(b.teacherId)?.name ?? '—';
+  const teacherName = (b: Booking) => byId.get(b.teacherId)?.name ?? '-';
   // SD and SMP–SMA slots have different lengths.
   const minutesOf = (b: Booking) => (settings ? minutesFor(settings, byId.get(b.teacherId)?.level ?? 'smp_sma') : 10);
 
@@ -168,7 +168,7 @@ export function MySchedulePage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="font-bold text-foreground">{teacher?.name ?? '—'}</p>
+                          <p className="font-bold text-foreground">{teacher?.name ?? '-'}</p>
                           <StatusPill
                             status={st === 'taken' ? 'available' : st}
                             label={

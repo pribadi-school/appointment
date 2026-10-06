@@ -8,12 +8,12 @@ import { Header } from '../components/Header';
 import { Notice, Skeleton, buttonClass } from '../components/ui';
 import { useI18n, type MessageKey } from '../lib/i18n';
 import { useLive } from '../lib/live';
-import { fmtDate, scheduleFor } from '../lib/time';
+import { fmtDate } from '../lib/time';
 import type { Level } from '../lib/types';
 
-const LEVELS: { level: Level; to: string; title: MessageKey; sub: MessageKey; icon: typeof School }[] = [
-  { level: 'sd', to: '/sd', title: 'lvl_sd', sub: 'lvl_sdSub', icon: Backpack },
-  { level: 'smp_sma', to: '/smp-sma', title: 'lvl_smp', sub: 'lvl_smpSub', icon: School },
+const LEVELS: { level: Level; to: string; title: MessageKey; icon: typeof School }[] = [
+  { level: 'sd', to: '/sd', title: 'lvl_sd', icon: Backpack },
+  { level: 'smp_sma', to: '/smp-sma', title: 'lvl_smp', icon: School },
 ];
 
 export function HomePage() {
@@ -38,23 +38,14 @@ export function HomePage() {
 
         <h2 className="mt-8 mb-3 text-lg font-bold text-foreground">{t('home_choose')}</h2>
         <ul className="divide-y divide-border-strong overflow-hidden rounded-lg border border-border-strong bg-surface sm:grid sm:grid-cols-2 sm:divide-x sm:divide-y-0">
-          {LEVELS.map(({ level, to, title, sub, icon: Icon }) => {
-            const sch = settings ? scheduleFor(settings, level) : null;
+          {LEVELS.map(({ level, to, title, icon: Icon }) => {
             return (
               <li key={level}>
                 <Link to={to} className="flex h-full items-center gap-4 px-4 py-4 transition-colors duration-150 hover:bg-surface-page active:bg-surface-muted">
-                  <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-md bg-action-tint text-action" aria-hidden>
+                  <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-md bg-surface-muted text-muted-foreground" aria-hidden>
                     <Icon className="size-6" />
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-lg leading-snug font-semibold text-foreground">{t(title)}</span>
-                    <span className="block text-sm text-muted-foreground">{t(sub)}</span>
-                    {sch && (
-                      <span className="mt-1 block text-sm font-medium text-action tabular-nums">
-                        {t('lvl_times', { start: sch.dayStart.replace(':', '.'), end: sch.dayEnd.replace(':', '.'), n: sch.slotMinutes })}
-                      </span>
-                    )}
-                  </span>
+                  <span className="min-w-0 flex-1 text-lg leading-snug font-semibold text-foreground">{t(title)}</span>
                   <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden />
                 </Link>
               </li>

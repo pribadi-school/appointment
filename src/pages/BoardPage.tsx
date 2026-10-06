@@ -214,7 +214,7 @@ function GridSection({ title, teachers, starts, minutes, now }: { title: string;
                 <tr key={teacher.id}>
                   <th scope="row" className="sticky left-0 z-10 max-w-36 border-b border-border bg-surface px-3 py-1.5 text-left font-normal sm:max-w-56">
                     <span className="block truncate text-sm font-bold text-foreground xl:text-sm">{teacher.name}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{teacher.room ?? '—'}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{teacher.room ?? '-'}</span>
                   </th>
                   {starts.map((s, i) => {
                     const st = state(teacher.id, s);

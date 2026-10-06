@@ -174,7 +174,7 @@ export function SlotSheet({ teacherId, slotStart, onClose }: { teacherId: string
               onChange={setMoveTime}
               options={slotStarts(scheduleFor(settings, moveTarget.level)).map((s) => ({
                 value: String(s),
-                label: `${fmtTime(s)}${taken.has(String(s)) ? ` — ${t('st_taken')}` : ''}`,
+                label: `${fmtTime(s)}${taken.has(String(s)) ? ` (${t('st_taken')})` : ''}`,
                 disabled: taken.has(String(s)),
               }))}
             />

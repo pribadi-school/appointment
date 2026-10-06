@@ -144,7 +144,7 @@ test.describe('360 px phone', () => {
     await page.getByRole('button', { name: 'Lanjut · 08.30' }).click();
 
     await expect(page.getByRole('heading', { name: 'Konfirmasi' })).toBeVisible();
-    await expect(page.getByText('Sabtu, 19 Desember 2026')).toBeVisible();
+    await expect(page.getByText('Sabtu, 17 Oktober 2026')).toBeVisible();
     await page.getByRole('button', { name: 'Pesan sekarang' }).click();
 
     await expect(page.getByRole('heading', { name: 'Berhasil dipesan!' })).toBeVisible();

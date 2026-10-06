@@ -233,7 +233,7 @@ function MaintenanceCard() {
         {action && (
           <form onSubmit={confirm} className="space-y-4">
             <p className="text-sm text-foreground">
-              <span className="font-semibold">{t(action.label)}</span> — {t(action.hint)}
+              <span className="font-semibold">{t(action.label)}:</span> {t(action.hint)}
             </p>
             <Field
               label={t('a_password')}

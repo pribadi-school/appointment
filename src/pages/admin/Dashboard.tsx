@@ -164,7 +164,7 @@ function LevelGrid({
                     <span className="block truncate text-sm font-bold text-foreground">{teacher.name}</span>
                     <span className="block truncate text-xs text-muted-foreground">
                       {teacher.level === 'sd' && `${classLabel(teacher.homeroomClass, t)} · `}
-                      {teacher.available ? (teacher.room ?? '—') : t('a_t_unavailable')}
+                      {teacher.available ? (teacher.room ?? '-') : t('a_t_unavailable')}
                     </span>
                   </th>
                   {starts.map((s, i) => {

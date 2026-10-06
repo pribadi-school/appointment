@@ -229,5 +229,5 @@ tests/
 | `npm run test:e2e` | browser tests in demo mode (uses installed Edge; set `PW_CHANNEL=chrome` for Chrome) |
 | `npm run seed:generate` | rebuild `supabase/seed.sql` from `src/data/seedTeachers.ts` |
 
-Placeholders to confirm: the **event date** (default 19 December 2026) and the
+Placeholders to confirm: the **event date** (default 17 October 2026) and the
 **room names** are placeholders. Change both from the Admin page.

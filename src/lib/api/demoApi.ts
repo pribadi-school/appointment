@@ -39,7 +39,7 @@ const DEMO_NAMES = ['Aisyah', 'Bima', 'Citra', 'Dimas', 'Elena', 'Farhan', 'Gita
 function freshDb(): Db {
   const teachers: Teacher[] = parseSeed().map((t) => ({ ...t, id: uid() }));
   const settings: Settings = {
-    eventDate: '2026-12-19', dayStart: '08:30', dayEnd: '12:30', slotMinutes: 10, bookingOpen: true,
+    eventDate: '2026-10-17', dayStart: '08:30', dayEnd: '12:30', slotMinutes: 10, bookingOpen: true,
     sdDayStart: '08:00', sdDayEnd: '12:00', sdSlotMinutes: 15,
   };
   const db: Db = { settings, teachers, bookings: [], sessions: [] };

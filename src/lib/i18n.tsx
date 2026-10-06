@@ -15,7 +15,7 @@ const en = {
   reconnecting: 'Reconnecting…',
   liveHelp: 'Times update automatically',
   langLabel: 'Language',
-  demoBanner: 'Demo mode — data stays on this device only. Admin password: demo · Teacher PIN: 1234',
+  demoBanner: 'Demo mode: data stays on this device only. Admin password: demo · Teacher PIN: 1234',
   loading: 'Loading…',
   retry: 'Try again',
   close: 'Close',
@@ -53,13 +53,10 @@ const en = {
 
   // Home: greeting + level choice
   home_hello: 'Welcome, parents',
-  home_body: 'Thank you for coming to Report Card Day at Pribadi Depok. Book a short consultation with your child’s teachers — it takes less than a minute.',
+  home_body: 'Thank you for coming to Report Card Day at Pribadi Depok. Book a short consultation with your child’s teachers. It takes less than a minute.',
   home_choose: 'Choose your child’s level',
   lvl_sd: 'Primary School',
-  lvl_sdSub: 'SD · Grades 1–6',
   lvl_smp: 'Junior – Senior High School',
-  lvl_smpSub: 'SMP–SMA · Grades 7–12',
-  lvl_times: '{start} – {end} · {n} min per consultation',
   changeLevel: 'Change level',
 
   // Booking flow
@@ -135,7 +132,7 @@ const en = {
   // WhatsApp message
   wa_title: '*Parent–Teacher Consultation*',
   wa_intro: 'Your consultation schedule for {date}:',
-  wa_line: '• *{time}* — {teacher}{subject}\n   Room: {room} · {child} ({cls}) · Code: {code}',
+  wa_line: '• *{time}* · {teacher}{subject}\n   Room: {room} · {child} ({cls}) · Code: {code}',
   wa_footer: 'Please arrive a few minutes early. View or cancel: {url}',
 
   // My schedule
@@ -301,7 +298,7 @@ const en = {
   a_m_clearBookingsHint: 'Removes every booking and blocked slot. Teachers and settings are kept. This cannot be undone.',
   a_m_confirmTitle: 'Confirm with password',
   a_m_confirm: 'Confirm',
-  a_m_done: 'Done — {n} removed',
+  a_m_done: 'Done: {n} removed',
   a_qr_title: 'Scan to book a consultation',
   a_qr_sub: 'No app or account needed',
   a_qr_print: 'Print poster',
@@ -346,7 +343,7 @@ const id: Record<MessageKey, string> = {
   reconnecting: 'Menyambung ulang…',
   liveHelp: 'Waktu diperbarui otomatis',
   langLabel: 'Bahasa',
-  demoBanner: 'Mode demo — data hanya tersimpan di perangkat ini. Kata sandi admin: demo · PIN guru: 1234',
+  demoBanner: 'Mode demo: data hanya tersimpan di perangkat ini. Kata sandi admin: demo · PIN guru: 1234',
   loading: 'Memuat…',
   retry: 'Coba lagi',
   close: 'Tutup',
@@ -381,13 +378,10 @@ const id: Record<MessageKey, string> = {
   imParent: 'Saya orang tua',
 
   home_hello: 'Selamat datang, Bapak/Ibu',
-  home_body: 'Terima kasih telah hadir di Hari Pembagian Rapor Sekolah Pribadi Depok. Pesan waktu konsultasi singkat dengan guru putra-putri Anda — hanya butuh kurang dari satu menit.',
+  home_body: 'Terima kasih telah hadir di Hari Pembagian Rapor Sekolah Pribadi Depok. Pesan waktu konsultasi singkat dengan guru putra-putri Anda. Hanya butuh kurang dari satu menit.',
   home_choose: 'Pilih jenjang putra-putri Anda',
   lvl_sd: 'SD',
-  lvl_sdSub: 'Sekolah Dasar · Kelas 1–6',
   lvl_smp: 'SMP – SMA',
-  lvl_smpSub: 'Sekolah Menengah · Kelas 7–12',
-  lvl_times: '{start} – {end} · {n} menit per konsultasi',
   changeLevel: 'Ganti jenjang',
 
   step_details: 'Data Anda',
@@ -461,7 +455,7 @@ const id: Record<MessageKey, string> = {
 
   wa_title: '*Konsultasi Orang Tua–Guru*',
   wa_intro: 'Jadwal konsultasi Anda pada {date}:',
-  wa_line: '• *{time}* — {teacher}{subject}\n   Ruang: {room} · {child} ({cls}) · Kode: {code}',
+  wa_line: '• *{time}* · {teacher}{subject}\n   Ruang: {room} · {child} ({cls}) · Kode: {code}',
   wa_footer: 'Mohon datang beberapa menit lebih awal. Lihat atau batalkan: {url}',
 
   my_title: 'Jadwal saya',
@@ -623,7 +617,7 @@ const id: Record<MessageKey, string> = {
   a_m_clearBookingsHint: 'Menghapus semua pemesanan dan slot yang diblokir. Data guru dan pengaturan tetap ada. Tidak dapat dibatalkan.',
   a_m_confirmTitle: 'Konfirmasi dengan kata sandi',
   a_m_confirm: 'Konfirmasi',
-  a_m_done: 'Selesai — {n} dihapus',
+  a_m_done: 'Selesai: {n} dihapus',
   a_qr_title: 'Pindai untuk memesan konsultasi',
   a_qr_sub: 'Tanpa aplikasi, tanpa akun',
   a_qr_print: 'Cetak poster',

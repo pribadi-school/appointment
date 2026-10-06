@@ -26,5 +26,5 @@ export const KEYS = {
   teacherSession: 'ptc.teacherSession',
   lastTeacher: 'ptc.lastTeacher',
   adminSession: 'ptc.adminSession',
-  demoDb: 'ptc.demo.v2', // v2: SD classes + SD times
+  demoDb: 'ptc.demo.v3', // v3: event date 17 Oct 2026 (v2: SD classes + SD times)
 } as const;

@@ -13,7 +13,7 @@ export function LiveIndicator({ className }: { className?: string }) {
     <span
       className={cx('inline-flex items-center gap-1.5 text-xs font-semibold', connected ? 'text-foreground' : 'text-muted-foreground', className)}
       role="status"
-      aria-label={connected ? `${t('live')} — ${t('liveHelp')}` : t('reconnecting')}
+      aria-label={connected ? `${t('live')}. ${t('liveHelp')}` : t('reconnecting')}
       title={connected ? t('liveHelp') : t('reconnecting')}
     >
       <span className="relative inline-flex size-2" aria-hidden>
@@ -71,7 +71,7 @@ export function Header({ title, right, wide }: { title?: string; right?: ReactNo
       )}
       <header className="no-print sticky top-0 z-40 border-b border-border-strong bg-surface">
         <div className={cx('mx-auto flex h-16 items-center gap-3 px-4 sm:h-[72px] sm:gap-5 sm:px-6', wide ? 'max-w-[1600px]' : 'max-w-3xl')}>
-          <Link to="/" className="flex min-w-0 items-center gap-3 rounded-md py-2" aria-label={`${t('school')} — ${t('appName')}`}>
+          <Link to="/" className="flex min-w-0 items-center gap-3 rounded-md py-2" aria-label={`${t('school')}, ${t('appName')}`}>
             <SchoolLogo className="h-7 sm:h-8" />
             {/* Sub-pages (Live board, Admin …) show their name next to the logo from tablet width up. */}
             {title && (

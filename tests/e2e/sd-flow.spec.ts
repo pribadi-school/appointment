@@ -29,12 +29,13 @@ const ID = { parent: 'Nama Anda', child: 'Nama anak', cls: 'Kelas anak', phone: 
 test('home: greeting first, then the level choice; both fit a 360 px phone without scrolling', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /Welcome, parents/ })).toBeVisible();
-  await expect(page.getByText('Saturday, 19 December 2026')).toBeVisible();
+  await expect(page.getByText('Saturday, 17 October 2026')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Choose your child’s level' })).toBeVisible();
   const sd = page.getByRole('link', { name: /Primary School/ });
   const smp = page.getByRole('link', { name: /Junior – Senior High School/ });
-  await expect(sd).toContainText('08.00 – 12.00 · 15 min');
-  await expect(smp).toContainText('08.30 – 12.30 · 10 min');
+  // Just the level name: no description lines.
+  await expect(sd).toHaveText('Primary School');
+  await expect(smp).toHaveText('Junior – Senior High School');
   // Greeting + both choices visible on the first screen.
   await expect(sd).toBeInViewport();
   await expect(smp).toBeInViewport();
@@ -48,7 +49,7 @@ test('home: greeting first, then the level choice; both fit a 360 px phone witho
   await shot(page, '1-home-id');
 
   // Levels open their own flow; "Change level" goes back.
-  await page.getByRole('link', { name: /^SD Sekolah Dasar/ }).click();
+  await page.getByRole('link', { name: 'SD', exact: true }).click();
   await expect(page).toHaveURL(/\/sd$/);
   await page.getByRole('link', { name: 'Ganti jenjang' }).click();
   await expect(page).toHaveURL(/\/$/);

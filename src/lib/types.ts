@@ -6,7 +6,7 @@ export type Lang = 'en' | 'id';
 export type Level = 'sd' | 'smp_sma';
 
 export type Settings = {
-  eventDate: string; // "2026-12-19" (Asia/Jakarta calendar date)
+  eventDate: string; // "2026-10-17" (Asia/Jakarta calendar date)
   dayStart: string; // "08:30"  — SMP–SMA
   dayEnd: string; // "12:30"
   slotMinutes: number; // 10

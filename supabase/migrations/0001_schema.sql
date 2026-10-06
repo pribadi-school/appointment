@@ -31,7 +31,7 @@ revoke all on schema private from public;
 -- Event settings: exactly one row (id = 1). Edited from the admin page.
 create table if not exists public.settings (
   id            int primary key default 1 check (id = 1),
-  event_date    date    not null default date '2026-12-19',
+  event_date    date    not null default date '2026-10-17',
   day_start     time    not null default time '08:30',
   day_end       time    not null default time '12:30',
   slot_minutes  int     not null default 10 check (slot_minutes between 5 and 60),

@@ -45,7 +45,7 @@ export const fmtTime = (ms: number) => timeFmt.format(ms).replace(':', '.');
 /** 09.10 – 09.20 */
 export const fmtRange = (ms: number, minutes: number) => `${fmtTime(ms)} – ${fmtTime(ms + minutes * MINUTE)}`;
 
-/** Saturday, 19 December 2026 / Sabtu, 19 Desember 2026 */
+/** Saturday, 17 October 2026 / Sabtu, 17 Oktober 2026 */
 export function fmtDate(date: string, lang: Lang, opts: Intl.DateTimeFormatOptions = {}) {
   return new Intl.DateTimeFormat(lang === 'id' ? 'id-ID' : 'en-GB', {
     timeZone: TZ,
@@ -57,7 +57,7 @@ export function fmtDate(date: string, lang: Lang, opts: Intl.DateTimeFormatOptio
   }).format(jakartaTime(date, '12:00'));
 }
 
-/** Jakarta calendar date of an instant, "2026-12-19" */
+/** Jakarta calendar date of an instant, "2026-10-17" */
 export const jakartaDate = (ms: number) =>
   new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(ms);
 

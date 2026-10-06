@@ -13,7 +13,7 @@ export function scheduleMessage(lang: Lang, bookings: Booking[], teachers: Teach
       const teacher = byId.get(b.teacherId);
       return t('wa_line', {
         time: fmtRange(b.slotStart, minutesFor(settings, teacher?.level ?? 'smp_sma')),
-        teacher: teacher?.name ?? '—',
+        teacher: teacher?.name ?? '-',
         subject: teacher?.subject ? ` (${teacher.subject})` : '',
         room: teacher?.room ?? t('roomTbc'),
         child: b.childName ?? '',

@@ -43,7 +43,10 @@ const en = {
   st_selected: 'Selected',
 
   // Navigation
-  nav_book: 'Book',
+  nav_book: 'Book a consultation',
+  nav_menu: 'Menu',
+  nav_forParents: 'For parents',
+  nav_forStaff: 'For school staff',
   nav_mySchedule: 'My schedule',
   nav_board: 'Live board',
   nav_teacher: 'Teacher',
@@ -52,7 +55,7 @@ const en = {
   imParent: "I'm a parent",
 
   // Home: greeting + level choice
-  home_hello: 'Welcome, parents',
+  home_hello: 'Welcome, Ayah & Bunda!',
   home_body: 'Thank you for coming to Report Card Day at Pribadi Depok. Book a short consultation with your child’s teachers. It takes less than a minute.',
   home_choose: 'Choose your child’s level',
   lvl_sd: 'Primary School',
@@ -370,7 +373,10 @@ const id: Record<MessageKey, string> = {
   st_youreBooked: 'Anda terjadwal',
   st_selected: 'Dipilih',
 
-  nav_book: 'Pesan',
+  nav_book: 'Pesan konsultasi',
+  nav_menu: 'Menu',
+  nav_forParents: 'Untuk orang tua',
+  nav_forStaff: 'Untuk guru & staf',
   nav_mySchedule: 'Jadwal saya',
   nav_board: 'Papan langsung',
   nav_teacher: 'Guru',
@@ -378,7 +384,7 @@ const id: Record<MessageKey, string> = {
   imTeacher: 'Saya guru',
   imParent: 'Saya orang tua',
 
-  home_hello: 'Selamat datang, Bapak/Ibu',
+  home_hello: 'Selamat datang, Ayah & Bunda!',
   home_body: 'Terima kasih telah hadir di Hari Pembagian Rapor Sekolah Pribadi Depok. Pesan waktu konsultasi singkat dengan guru putra-putri Anda. Hanya butuh kurang dari satu menit.',
   home_choose: 'Pilih jenjang putra-putri Anda',
   lvl_sd: 'SD',

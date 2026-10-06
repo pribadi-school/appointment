@@ -28,7 +28,7 @@ const ID = { parent: 'Nama Anda', child: 'Nama anak', cls: 'Kelas anak', phone: 
 
 test('home: greeting first, then the level choice; both fit a 360 px phone without scrolling', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /Welcome, parents/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome, Ayah & Bunda!' })).toBeVisible();
   await expect(page.getByText('Saturday, 17 October 2026')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Choose your child’s level' })).toBeVisible();
   const sd = page.getByRole('link', { name: /Primary School/ });
@@ -43,7 +43,7 @@ test('home: greeting first, then the level choice; both fit a 360 px phone witho
   await shot(page, '1-home-en');
 
   await page.getByRole('button', { name: 'Bahasa Indonesia' }).click();
-  await expect(page.getByRole('heading', { name: /Selamat datang, Bapak\/Ibu/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Selamat datang, Ayah & Bunda!' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Pilih jenjang putra-putri Anda' })).toBeVisible();
   await expect(page.getByRole('link', { name: /SMP – SMA/ })).toBeVisible();
   await shot(page, '1-home-id');
@@ -143,5 +143,39 @@ test('SD (Bahasa Indonesia): kelas → waktu → konfirmasi', async ({ page }) =
   await page.getByRole('button', { name: 'Pesan sekarang' }).click();
   await expect(page.getByRole('heading', { name: 'Berhasil dipesan!' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pesan untuk anak lain' })).toBeVisible();
+  await expectNoHorizontalScroll(page);
+});
+
+test('menu: reach every part of the app from the header; header fits a 360 px phone', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Menu' }).click();
+  const menu = page.getByRole('navigation', { name: 'Menu' });
+  for (const name of ['Book a consultation', 'My schedule', 'Teacher', 'Live board', 'Admin']) {
+    await expect(menu.getByRole('link', { name, exact: true })).toBeVisible();
+  }
+  await expect(menu.getByRole('link', { name: 'Book a consultation' })).toHaveAttribute('aria-current', 'page');
+  await shot(page, '4-menu-en');
+  // Esc closes it.
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await menu.getByRole('link', { name: 'Teacher', exact: true }).click();
+  await expect(page).toHaveURL(/\/teacher$/);
+  await expect(menu).toHaveCount(0);
+  await expectNoHorizontalScroll(page);
+
+  // Signed-in teacher header (Log out + language + menu) still fits.
+  await page.getByRole('button', { name: /Your name/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /Nairah Umpa Camid/ }).click();
+  await page.getByLabel('Teacher PIN').fill('1234');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
+  await expectNoHorizontalScroll(page);
+  await shot(page, '5-teacher-header');
+
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await menu.getByRole('link', { name: 'Live board', exact: true }).click();
+  await expect(page).toHaveURL(/\/board$/);
   await expectNoHorizontalScroll(page);
 });

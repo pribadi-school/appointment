@@ -3,7 +3,7 @@
  * the child's level. Primary School → /sd, Junior–Senior High → /smp-sma.
  */
 import { Link } from 'react-router';
-import { Backpack, CalendarCheck, CalendarDays, ChevronRight, GraduationCap, School } from 'lucide-react';
+import { Backpack, CalendarCheck, CalendarDays, ChevronRight, School } from 'lucide-react';
 import { Header } from '../components/Header';
 import { Notice, Skeleton, buttonClass } from '../components/ui';
 import { useI18n, type MessageKey } from '../lib/i18n';
@@ -62,14 +62,10 @@ export function HomePage() {
           </div>
         )}
 
-        <div className="mt-10 grid gap-2 border-t border-border-strong pt-6 sm:flex sm:justify-center">
+        <div className="mt-10 grid border-t border-border-strong pt-6 sm:flex sm:justify-center">
           <Link to="/my" className={buttonClass('secondary', 'md')}>
             <CalendarCheck className="size-5" aria-hidden />
             {t('nav_mySchedule')}
-          </Link>
-          <Link to="/teacher" className={buttonClass('ghost', 'md')}>
-            <GraduationCap className="size-5" aria-hidden />
-            {t('imTeacher')}
           </Link>
         </div>
       </main>

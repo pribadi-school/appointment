@@ -5,6 +5,7 @@ import { ChevronLeft } from 'lucide-react';
 import { api } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { useLive } from '../lib/live';
+import { NavMenu } from './NavMenu';
 import { buttonClass, cx } from './ui';
 
 export function LiveIndicator({ className }: { className?: string }) {
@@ -21,7 +22,8 @@ export function LiveIndicator({ className }: { className?: string }) {
         {connected && <span className="absolute inline-flex size-full rounded-full bg-live animate-live-ping" />}
         <span className={cx('relative inline-flex size-2 rounded-full', connected ? 'bg-live' : 'bg-muted-foreground')} />
       </span>
-      <span className={cx(!connected && 'hidden sm:inline')}>{connected ? t('live') : t('reconnecting')}</span>
+      {/* On phones only the dot shows (the label is in aria-label), to leave room for the menu. */}
+      <span className="hidden sm:inline">{connected ? t('live') : t('reconnecting')}</span>
     </span>
   );
 }
@@ -81,10 +83,11 @@ export function Header({ title, right, wide }: { title?: string; right?: ReactNo
               </span>
             )}
           </Link>
-          <div className="ml-auto flex items-center gap-2.5">
+          <div className="ml-auto flex items-center gap-2 sm:gap-2.5">
             {right}
             <LiveIndicator />
             <LangToggle />
+            <NavMenu />
           </div>
         </div>
       </header>

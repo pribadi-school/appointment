@@ -222,25 +222,26 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
 
   return (
     <div className="min-h-dvh">
-      <Header
-        title={t('nav_teacher')}
-        right={
-          <button type="button" onClick={onSignOut} className={buttonClass('secondary', 'sm')}>
-            <LogOut className="size-4" aria-hidden />
-            {t('tv_signOut')}
-          </button>
-        }
-      />
+      <Header title={t('nav_teacher')} />
       <main className="mx-auto max-w-3xl px-4 pt-5 pb-16">
-        <Card className="mb-5 flex items-center gap-3 p-4">
-          <Avatar text={avatarText(teacher)} size="lg" />
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-bold">{teacher?.name}</h1>
-            <p className="flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="size-3.5" aria-hidden />
-              {teacher?.room ?? t('roomTbc')}
-            </p>
-            <p className="mt-0.5 text-sm font-semibold text-foreground">{t('tv_summary', { booked: real.length, done: doneCount })}</p>
+        <Card className="mb-5 p-4">
+          <div className="flex items-start gap-3">
+            <Avatar text={avatarText(teacher)} size="lg" />
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg leading-snug font-bold">{teacher?.name}</h1>
+              <p className="flex items-center gap-1 text-sm text-muted-foreground">
+                <MapPin className="size-3.5" aria-hidden />
+                {teacher?.room ?? t('roomTbc')}
+              </p>
+              <p className="mt-0.5 text-sm font-semibold text-foreground">{t('tv_summary', { booked: real.length, done: doneCount })}</p>
+            </div>
+          </div>
+          {/* In the teacher's own card (not the crowded phone header), on its own row. */}
+          <div className="mt-3 flex justify-end border-t border-border-strong pt-3">
+            <button type="button" onClick={onSignOut} className={cx(buttonClass('secondary', 'sm'), 'whitespace-nowrap')}>
+              <LogOut className="size-4" aria-hidden />
+              {t('tv_signOut')}
+            </button>
           </div>
         </Card>
 

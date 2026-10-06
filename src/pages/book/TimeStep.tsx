@@ -7,8 +7,8 @@ import { Avatar, Button, Card, Notice, Skeleton, cx } from '../../components/ui'
 import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { useTeacherSlots, type SlotView } from '../../lib/slots';
-import { initials } from '../../lib/teachers';
-import { fmtTime, hourOf } from '../../lib/time';
+import { avatarText, classLabel } from '../../lib/teachers';
+import { fmtTime, hourOf, minutesFor, overlaps } from '../../lib/time';
 import type { Flow } from '../BookPage';
 
 type ChipState = 'available' | 'selected' | 'taken' | 'busy' | 'passed';
@@ -16,16 +16,24 @@ type ChipState = 'available' | 'selected' | 'taken' | 'busy' | 'passed';
 export function TimeStep({ flow }: { flow: Flow }) {
   const { t } = useI18n();
   const toast = useToast();
-  const { teachers, loading } = useLive();
+  const { teachers, settings, loading } = useLive();
   const teacher = teachers.find((x) => x.id === flow.teacherId);
   const slots = useTeacherSlots(flow.teacherId);
   const autoPicked = useRef(false);
+  const sd = flow.level === 'sd';
 
-  // Times where this parent already sits with ANOTHER teacher.
-  const busyAt = useMemo(
-    () => new Set(flow.busy.filter((b) => b.teacherId !== flow.teacherId).map((b) => b.slotStart)),
-    [flow.busy, flow.teacherId],
-  );
+  // Times that overlap one this parent already has with ANOTHER teacher.
+  // Slot lengths differ between levels (SD 15 min, SMP–SMA 10 min), so any overlap counts.
+  const busyAt = useMemo(() => {
+    const out = new Set<number>();
+    if (!settings || !teacher) return out;
+    const level = new Map(teachers.map((x) => [x.id, x.level]));
+    const mine = minutesFor(settings, teacher.level);
+    const others = flow.busy.filter((b) => b.teacherId !== flow.teacherId);
+    for (const s of slots)
+      if (others.some((b) => overlaps(s.start, mine, b.slotStart, minutesFor(settings, level.get(b.teacherId) ?? 'smp_sma')))) out.add(s.start);
+    return out;
+  }, [flow.busy, flow.teacherId, slots, settings, teacher, teachers]);
   const alreadyWithTeacher = flow.busy.find((b) => b.teacherId === flow.teacherId && b.sameChild);
 
   const chipState = (s: SlotView): ChipState => {
@@ -79,9 +87,10 @@ export function TimeStep({ flow }: { flow: Flow }) {
   return (
     <>
       <Card className="mb-5 flex items-center gap-3 p-3.5">
-        <Avatar text={initials(teacher.name)} />
+        <Avatar text={avatarText(teacher)} />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-bold text-foreground">{teacher.name}</p>
+          {sd && <p className="text-xs font-semibold text-muted-foreground">{t('sd_teachers')} · {classLabel(teacher.homeroomClass, t)}</p>}
+          <p className={cx('text-[15px] font-bold text-foreground', !sd && 'truncate')}>{teacher.name}</p>
           {teacher.subject && <p className="truncate text-[13px] text-muted-foreground">{teacher.subject}</p>}
           {teacher.room && (
             <p className="flex items-center gap-1 truncate text-[13px] font-semibold text-foreground">
@@ -90,7 +99,7 @@ export function TimeStep({ flow }: { flow: Flow }) {
             </p>
           )}
         </div>
-        <button type="button" onClick={() => flow.go('teacher')} className="shrink-0 px-1 text-sm font-semibold text-action hover:underline">
+        <button type="button" onClick={() => flow.go(sd ? 'details' : 'teacher')} className="shrink-0 px-1 text-sm font-semibold text-action hover:underline">
           {t('t_change')}
         </button>
       </Card>

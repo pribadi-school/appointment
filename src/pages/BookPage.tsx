@@ -1,18 +1,21 @@
 /**
- * Parent booking flow: Details → Teacher → Time → Confirm → Booked!
+ * Parent booking flow, one per level:
+ *   SMP–SMA: Details → Teacher → Time → Confirm → Booked!
+ *   SD:      Details → Time → Confirm → Booked!  (the class decides the
+ *            teachers: each SD class is one record, its two homeroom teachers)
  * The current step lives in the URL (?step=time) so the phone's back button
  * goes back one step, like a native app.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { ChevronLeft, GraduationCap } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { Header } from '../components/Header';
 import { cx } from '../components/ui';
 import { api } from '../lib/api';
 import { useI18n, type MessageKey } from '../lib/i18n';
 import { useLive } from '../lib/live';
 import { KEYS, load, save } from '../lib/storage';
-import type { BusySlot, ParentDetails } from '../lib/types';
+import { levelOfClass, type BusySlot, type Level, type ParentDetails } from '../lib/types';
 import { DetailsStep } from './book/DetailsStep';
 import { TeacherStep } from './book/TeacherStep';
 import { TimeStep } from './book/TimeStep';
@@ -20,7 +23,10 @@ import { ConfirmStep } from './book/ConfirmStep';
 import { DoneStep } from './book/DoneStep';
 
 export type Step = 'details' | 'teacher' | 'time' | 'confirm' | 'done';
-const STEPS: Step[] = ['details', 'teacher', 'time', 'confirm'];
+const STEPS_BY_LEVEL: Record<Level, Step[]> = {
+  smp_sma: ['details', 'teacher', 'time', 'confirm'],
+  sd: ['details', 'time', 'confirm'],
+};
 const STEP_LABEL: Record<Exclude<Step, 'done'>, MessageKey> = {
   details: 'step_details',
   teacher: 'step_teacher',
@@ -31,6 +37,7 @@ const STEP_LABEL: Record<Exclude<Step, 'done'>, MessageKey> = {
 const EMPTY: ParentDetails = { parentName: '', childName: '', childClass: '', phone: '' };
 
 export type Flow = {
+  level: Level;
   details: ParentDetails;
   setDetails: (d: ParentDetails) => void;
   teacherId: string | null;
@@ -46,14 +53,21 @@ export type Flow = {
   forget: () => void;
 };
 
-export function BookPage() {
+export function BookPage({ level }: { level: Level }) {
   const { t } = useI18n();
-  const { version } = useLive();
+  const { version, teachers, loading } = useLive();
   const [params, setParams] = useSearchParams();
+  // Remembered details; a class from the other level is dropped (name and number are kept).
   const stored = useRef(load<ParentDetails | null>(KEYS.parent, null));
-  const [details, setDetailsState] = useState<ParentDetails>(stored.current ?? EMPTY);
+  const [details, setDetailsState] = useState<ParentDetails>(() =>
+    stored.current ? { ...stored.current, childClass: levelOfClass(stored.current.childClass) === level ? stored.current.childClass : '' } : EMPTY,
+  );
   const [remembered, setRemembered] = useState(Boolean(stored.current?.phone));
-  const [teacherId, setTeacherId] = useState<string | null>(null);
+  const [chosenTeacher, setTeacherId] = useState<string | null>(null);
+  // SD: the class's record is the "teacher".
+  const sdClass = level === 'sd' ? teachers.find((x) => x.level === 'sd' && x.available && x.homeroomClass === details.childClass) : undefined;
+  const teacherId = level === 'sd' ? (sdClass?.id ?? null) : chosenTeacher;
+  const STEPS = STEPS_BY_LEVEL[level];
   const [slotStart, setSlotStart] = useState<number | null>(null);
   const [busy, setBusy] = useState<BusySlot[]>([]);
   const [result, setResult] = useState<{ id: string; code: string } | null>(null);
@@ -71,12 +85,12 @@ export function BookPage() {
 
   // Deep link / refresh into a later step without the data → go back.
   useEffect(() => {
-    if (step === 'details') return;
+    if (step === 'details' || loading) return;
     if (!detailsComplete) go('details', { replace: true });
-    else if ((step === 'time' || step === 'confirm') && !teacherId) go('teacher', { replace: true });
+    else if ((step === 'time' || step === 'confirm') && !teacherId) go(level === 'sd' ? 'details' : 'teacher', { replace: true });
     else if (step === 'confirm' && !slotStart) go('time', { replace: true });
-    else if (step === 'done' && !result) go('teacher', { replace: true });
-  }, [step, detailsComplete, teacherId, slotStart, result, go]);
+    else if (step === 'done' && !result) go(level === 'sd' ? 'details' : 'teacher', { replace: true });
+  }, [step, detailsComplete, teacherId, slotStart, result, go, level, loading]);
 
   const setDetails = (d: ParentDetails) => {
     setDetailsState(d);
@@ -100,6 +114,7 @@ export function BookPage() {
   }, [step]);
 
   const flow: Flow = {
+    level,
     details,
     setDetails,
     teacherId,
@@ -127,10 +142,16 @@ export function BookPage() {
       <Header />
       <main className="mx-auto max-w-3xl px-4 pt-4 pb-36">
         {step === 'details' && (
-          // First page: the app name as the page title.
+          // First page of the level: the app name + chosen level as the page title.
           <div className="mb-6 pt-1">
+            <Link to="/" className="-ml-1 mb-2 inline-flex items-center gap-1 rounded-full px-1 text-sm font-semibold text-action hover:underline">
+              <ChevronLeft className="size-4" aria-hidden />
+              {t('changeLevel')}
+            </Link>
             <h1 className="text-[28px] leading-tight font-extrabold text-foreground">{t('appName')}</h1>
-            <p className="mt-1 text-[15px] font-medium text-muted-foreground">{t('school')}</p>
+            <p className="mt-1 text-[15px] font-medium text-muted-foreground">
+              {t(level === 'sd' ? 'lvl_sd' : 'lvl_smp')} · {t(level === 'sd' ? 'lvl_sdSub' : 'lvl_smpSub')}
+            </p>
           </div>
         )}
         {step !== 'done' && (
@@ -163,7 +184,7 @@ export function BookPage() {
               aria-valuemax={STEPS.length}
               aria-valuenow={index + 1}
               aria-valuetext={`${t('stepOf', { n: index + 1, total: STEPS.length })}: ${t(STEP_LABEL[step as Exclude<Step, 'done'>])}`}
-              className="mt-3 grid grid-cols-4 gap-1.5"
+              className={cx('mt-3 grid gap-1.5', STEPS.length === 3 ? 'grid-cols-3' : 'grid-cols-4')}
             >
               {STEPS.map((s, i) => (
                 <span key={s} className="h-1.5 overflow-hidden rounded-full bg-surface-muted">
@@ -182,23 +203,11 @@ export function BookPage() {
 
         <div key={step} className="animate-step-in">
           {step === 'details' && <DetailsStep flow={flow} />}
-          {step === 'teacher' && detailsComplete && <TeacherStep flow={flow} />}
+          {step === 'teacher' && level === 'smp_sma' && detailsComplete && <TeacherStep flow={flow} />}
           {step === 'time' && teacherId && <TimeStep flow={flow} />}
           {step === 'confirm' && teacherId && slotStart && <ConfirmStep flow={flow} />}
           {step === 'done' && result && <DoneStep flow={flow} />}
         </div>
-
-        {step === 'details' && (
-          <div className="mt-10 flex justify-center border-t border-border pt-6">
-            <Link
-              to="/teacher"
-              className="inline-flex items-center gap-2 rounded-full border border-border-strong bg-surface px-5 py-2.5 text-[15px] font-semibold text-foreground hover:bg-surface-muted"
-            >
-              <GraduationCap className="size-5" aria-hidden />
-              {t('imTeacher')}
-            </Link>
-          </div>
-        )}
       </main>
     </div>
   );

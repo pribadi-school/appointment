@@ -133,6 +133,83 @@ describe('parent rules', () => {
   });
 });
 
+describe('primary school (SD)', () => {
+  const sdTeacher = async (grade: number) =>
+    (await c.query(`select id from public.teachers where level = 'sd' and homeroom_class = $1`, [String(grade)])).rows[0].id as string;
+  const bookAs = async (teacherId: string, slot: string, phone: string, child: string, cls: string) => {
+    await c.query('set role anon');
+    try {
+      return await c.query('select public.book_slot($1, $2, $3, $4, $5, $6, $7)', [teacherId, slot, 'Ibu Rina', child, cls, phone, 'en']);
+    } finally {
+      await c.query('reset role');
+    }
+  };
+
+  it('seeds one class per grade 1–6, with 15-minute slots from 08.00', async () => {
+    const r = await c.query(`select homeroom_class from public.teachers where level = 'sd' order by homeroom_class`);
+    expect(r.rows.map((x) => x.homeroom_class)).toEqual(['1', '2', '3', '4', '5', '6']);
+    const s = (await c.query(`select sd_day_start::text, sd_day_end::text, sd_slot_minutes from public.settings`)).rows[0];
+    expect(s).toEqual({ sd_day_start: '08:00:00', sd_day_end: '12:00:00', sd_slot_minutes: 15 });
+  });
+
+  it('SD slots follow the 15-minute grid; SD classes only book SD, SMP classes only SMP', async () => {
+    const g3 = await sdTeacher(3);
+    expect(await outcome(bookAs(g3, at('08:15'), '081200000001', 'Kecil', '3'))).toBe('OK');
+    expect(await outcome(bookAs(g3, at('08:10'), '081200000002', 'Kecil Dua', '3'))).toBe('INVALID_SLOT');
+    expect(await outcome(bookAs(g3, at('11:45'), '081200000003', 'Kecil Tiga', '3'))).toBe('OK');
+    expect(await outcome(bookAs(g3, at('12:00'), '081200000004', 'Kecil Empat', '3'))).toBe('INVALID_SLOT');
+    // Class from the other level is refused both ways.
+    expect(await outcome(bookAs(g3, at('09:00'), '081200000005', 'Besar', '8B'))).toBe('INVALID_INPUT');
+    expect(await outcome(bookAs(teacherA, at('09:00'), '081200000006', 'Kecil', '3'))).toBe('INVALID_INPUT');
+  });
+
+  it('one room at a time across levels: overlapping SD and SMP slots are refused', async () => {
+    const g1 = await sdTeacher(1);
+    // SD 08.30–08.45 …
+    expect(await outcome(bookAs(g1, at('08:30'), '081277777777', 'Adik', '1'))).toBe('OK');
+    // … overlaps SMP 08.40–08.50 (different start time) → refused.
+    expect(await outcome(bookAs(teacherA, at('08:40'), '081277777777', 'Kakak', '8B'))).toBe('PARENT_BUSY');
+    // SMP 08.50 starts after the SD slot ends → fine.
+    expect(await outcome(bookAs(teacherA, at('08:50'), '081277777777', 'Kakak', '8B'))).toBe('OK');
+  });
+
+  it('a parent booking two overlapping slots at the same instant: exactly one succeeds', async () => {
+    const g2 = await sdTeacher(2);
+    const p1 = await db.connect();
+    const p2 = await db.connect();
+    try {
+      await p1.query('begin');
+      await p1.query('set role anon');
+      await p1.query('select public.book_slot($1, $2, $3, $4, $5, $6, $7)', [g2, at('09:00'), 'Ibu', 'Adik', '2', '081288888888', 'en']);
+      await p2.query('set role anon');
+      const second = outcome(
+        p2.query('select public.book_slot($1, $2, $3, $4, $5, $6, $7)', [teacherA, at('09:10'), 'Ibu', 'Kakak', '9A', '081288888888', 'en']),
+      );
+      await new Promise((r) => setTimeout(r, 300));
+      await p1.query('commit');
+      expect(await second).toBe('PARENT_BUSY');
+    } finally {
+      await p1.end();
+      await p2.end();
+    }
+  });
+
+  it('admin: SD times are saved separately; a booking off the new SD grid is refused', async () => {
+    await c.query(`select public.set_admin_password('correct horse')`);
+    const { token } = (await c.query(`select public.admin_login('correct horse') r`)).rows[0].r;
+    const g4 = await sdTeacher(4);
+    await bookAs(g4, at('08:15'), '081211112222', 'Rafi', '4');
+    const save = (sdStart: string, sdLen: number) =>
+      c.query(`select public.admin_save_settings($1, $2, '08:30', '12:30', 10, true, $3, '12:00', $4)`, [token, eventDate, sdStart, sdLen]);
+    // 20-minute SD slots would put 08.15 off the grid → refused, nothing changes.
+    expect(await outcome(save('08:00', 20))).toBe('SCHEDULE_CONFLICT');
+    expect(await outcome(save('08:15', 15))).toBe('OK');
+    const s = (await c.query(`select sd_day_start::text, slot_minutes from public.settings`)).rows[0];
+    expect(s).toEqual({ sd_day_start: '08:15:00', slot_minutes: 10 });
+    await save('08:00', 15);
+  });
+});
+
 describe('privacy (Row Level Security)', () => {
   it('the public role cannot read bookings or sessions', async () => {
     await book(c, teacherA, at('09:00'), '081234567890');
@@ -280,11 +357,11 @@ describe('teacher and admin sessions', () => {
     const { token } = (await c.query(`select public.admin_login('correct horse') r`)).rows[0].r;
     await book(c, teacherA, at('12:20'), '081234567890');
     const newDate = (await c.query(`select to_char(event_date + 7, 'YYYY-MM-DD') d from public.settings`)).rows[0].d;
-    await c.query(`select public.admin_save_settings($1, $2, '08:30', '12:30', 10, true)`, [token, newDate]);
+    await c.query(`select public.admin_save_settings($1, $2, '08:30', '12:30', 10, true, '08:00', '12:00', 15)`, [token, newDate]);
     const moved = await c.query(`select to_char(slot_start at time zone 'Asia/Jakarta', 'YYYY-MM-DD HH24:MI') s from public.slot_status`);
     expect(moved.rows[0].s).toBe(`${newDate} 12:20`);
     // Ending at 12.00 would orphan the 12.20 booking → refused, nothing changes.
-    expect(await outcome(c.query(`select public.admin_save_settings($1, $2, '08:30', '12:00', 10, true)`, [token, newDate]))).toBe(
+    expect(await outcome(c.query(`select public.admin_save_settings($1, $2, '08:30', '12:00', 10, true, '08:00', '12:00', 15)`, [token, newDate]))).toBe(
       'SCHEDULE_CONFLICT',
     );
     const s = await c.query(`select day_end::text from public.settings`);

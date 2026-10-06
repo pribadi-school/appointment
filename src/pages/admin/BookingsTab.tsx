@@ -6,6 +6,7 @@ import { exportCsv, exportXlsx } from '../../lib/export';
 import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { formatPhone } from '../../lib/phone';
+import { classLabel } from '../../lib/teachers';
 import { fmtTime } from '../../lib/time';
 import { useAdmin } from './AdminPage';
 import { SlotSheet } from './SlotSheet';
@@ -25,9 +26,11 @@ export function BookingsTab() {
       .filter(
         (b) =>
           !needle ||
-          [b.childName, b.childClass, b.parentName, b.code, b.phone, byId.get(b.teacherId)?.name].some((v) => v?.toLowerCase().includes(needle)),
+          [b.childName, b.childClass, classLabel(b.childClass, t), b.parentName, b.code, b.phone, byId.get(b.teacherId)?.name].some((v) =>
+            v?.toLowerCase().includes(needle),
+          ),
       );
-  }, [bookings, q, byId]);
+  }, [bookings, q, byId, t]);
 
   if (!bookings || !settings) return <Skeleton className="h-96 rounded-lg" />;
 
@@ -76,7 +79,7 @@ export function BookingsTab() {
                     <td className="px-3 py-2.5 font-semibold text-foreground">{teacher?.name}</td>
                     <td className="px-3 py-2.5 text-muted-foreground">{teacher?.room}</td>
                     <td className="px-3 py-2.5 text-foreground">
-                      {b.childName} <span className="text-muted-foreground">· {b.childClass}</span>
+                      {b.childName} <span className="text-muted-foreground">· {classLabel(b.childClass, t)}</span>
                     </td>
                     <td className="px-3 py-2.5 text-foreground">{b.parentName}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">{b.phone ? formatPhone(b.phone) : t('a_walkIn')}</td>

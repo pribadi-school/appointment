@@ -25,7 +25,7 @@ test.describe('360 px phone', () => {
   test.use(PHONE);
 
   test('English: book two teachers, conflict hint, My schedule, WhatsApp text', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/smp-sma');
     await expect(page.getByRole('heading', { name: 'Your details' })).toBeVisible();
     await expect(page.getByText('Step 1 of 4')).toBeVisible();
     await expectNoHorizontalScroll(page);
@@ -115,7 +115,7 @@ test.describe('360 px phone', () => {
   });
 
   test('Bahasa Indonesia: whole flow translated, choice remembered', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/smp-sma');
     await page.getByRole('button', { name: 'Bahasa Indonesia' }).click();
     await expect(page.getByRole('heading', { name: 'Data Anda' })).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('lang', 'id');
@@ -157,7 +157,7 @@ test.describe('360 px phone', () => {
     expect(text).toContain('Ruang:');
 
     // Next visit: details are remembered.
-    await page.goto('/');
+    await page.goto('/smp-sma');
     await expect(page.getByText('Selamat datang kembali!')).toBeVisible();
     await expect(page.getByLabel('Nama anak')).toHaveValue('Citra Lestari');
   });
@@ -169,7 +169,7 @@ test.describe('360 px phone', () => {
       [a, { parent: 'Parent A', child: 'Anak A', cls: '9A', phone: '0811 1111 1111' }],
       [b, { parent: 'Parent B', child: 'Anak B', cls: '9A', phone: '0822 2222 2222' }],
     ] as const) {
-      await page.goto('/');
+      await page.goto('/smp-sma');
       await fillDetails(page, d, { parent: 'Your name', child: 'Child’s name', cls: 'Child’s class', phone: 'WhatsApp number' });
       await page.getByRole('button', { name: 'Continue' }).click();
       await page.locator('section').first().getByRole('button').first().click(); // 9A homeroom
@@ -196,7 +196,7 @@ test.describe('360 px phone', () => {
     await expect(cell).toBeVisible();
 
     const parent = await context.newPage();
-    await parent.goto('/');
+    await parent.goto('/smp-sma');
     await fillDetails(parent, { parent: 'Live Test', child: 'Dimas', cls: '8B', phone: '0813 0000 0001' }, {
       parent: 'Your name', child: 'Child’s name', cls: 'Child’s class', phone: 'WhatsApp number',
     });
@@ -215,7 +215,7 @@ test.describe('768 px tablet', () => {
   test.use({ viewport: { width: 768, height: 1024 } });
 
   test('booking start, board and admin fit without sideways scrolling', async ({ page }) => {
-    for (const path of ['/', '/board', '/my', '/teacher', '/admin']) {
+    for (const path of ['/', '/sd', '/smp-sma', '/board', '/my', '/teacher', '/admin']) {
       await page.goto(path);
       await page.waitForLoadState('networkidle');
       await expectNoHorizontalScroll(page);

@@ -1,6 +1,7 @@
 /** Builds the "Send schedule to my WhatsApp" message, in the chosen language. */
 import { translate } from './i18n';
-import { fmtDate, fmtRange } from './time';
+import { classLabel } from './teachers';
+import { fmtDate, fmtRange, minutesFor } from './time';
 import type { Booking, Lang, Settings, Teacher } from './types';
 
 export function scheduleMessage(lang: Lang, bookings: Booking[], teachers: Teacher[], settings: Settings) {
@@ -11,12 +12,12 @@ export function scheduleMessage(lang: Lang, bookings: Booking[], teachers: Teach
     .map((b) => {
       const teacher = byId.get(b.teacherId);
       return t('wa_line', {
-        time: fmtRange(b.slotStart, settings.slotMinutes),
+        time: fmtRange(b.slotStart, minutesFor(settings, teacher?.level ?? 'smp_sma')),
         teacher: teacher?.name ?? '—',
         subject: teacher?.subject ? ` (${teacher.subject})` : '',
         room: teacher?.room ?? t('roomTbc'),
         child: b.childName ?? '',
-        cls: b.childClass ?? '',
+        cls: classLabel(b.childClass, t),
         code: b.code,
       });
     });

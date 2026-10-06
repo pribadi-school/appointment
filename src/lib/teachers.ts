@@ -4,6 +4,9 @@ import { gradeOf, type Teacher } from './types';
 
 export type TeacherGroup = { key: string; title: string; teachers: Teacher[] };
 
+/** "8B" stays "8B"; an SD class "3" becomes "Grade 3" / "Kelas 3". */
+export const classLabel = (cls: string | null | undefined, t: T) => (cls && /^[1-6]$/.test(cls) ? t('grade', { n: cls }) : (cls ?? ''));
+
 const matches = (t: Teacher, q: string) =>
   !q || `${t.name} ${t.subject ?? ''} ${t.room ?? ''} ${t.role ?? ''}`.toLowerCase().includes(q.toLowerCase().trim());
 
@@ -16,7 +19,8 @@ const matches = (t: Teacher, q: string) =>
  */
 export function groupTeachers(teachers: Teacher[], childClass: string, query: string, t: T): TeacherGroup[] {
   const grade = gradeOf(childClass);
-  const list = teachers.filter((x) => x.available && matches(x, query));
+  // SD classes have their own flow and are never listed here.
+  const list = teachers.filter((x) => x.level === 'smp_sma' && x.available && matches(x, query));
   const groups: TeacherGroup[] = [];
 
   const homeroom = list.filter((x) => x.homeroomClass === childClass);
@@ -47,3 +51,7 @@ export function initials(name: string) {
   const words = name.split(',')[0].trim().split(/\s+/);
   return ((words[0]?.[0] ?? '') + (words.length > 1 ? words[words.length - 1][0] : '')).toUpperCase();
 }
+
+/** Avatar text: initials, or the grade number for an SD class (two teachers share it). */
+export const avatarText = (teacher: Pick<Teacher, 'name' | 'level' | 'homeroomClass'> | undefined) =>
+  !teacher ? '?' : teacher.level === 'sd' ? (teacher.homeroomClass ?? '?') : initials(teacher.name);

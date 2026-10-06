@@ -2,21 +2,29 @@
 
 export type Lang = 'en' | 'id';
 
+/** 'sd' = primary school (grades 1–6), 'smp_sma' = junior/senior high (7–12). */
+export type Level = 'sd' | 'smp_sma';
+
 export type Settings = {
   eventDate: string; // "2026-12-19" (Asia/Jakarta calendar date)
-  dayStart: string; // "08:30"
+  dayStart: string; // "08:30"  — SMP–SMA
   dayEnd: string; // "12:30"
   slotMinutes: number; // 10
   bookingOpen: boolean;
+  sdDayStart: string; // "08:00" — SD has its own day
+  sdDayEnd: string; // "12:00"
+  sdSlotMinutes: number; // 15
 };
 
 export type Teacher = {
   id: string;
   name: string;
+  /** SD records are one per class, named after its two homeroom teachers. */
+  level: Level;
   subject: string | null;
   grades: number[]; // empty = every grade
   role: string | null;
-  homeroomClass: string | null; // "8B"
+  homeroomClass: string | null; // "8B", or "3" for an SD class
   isLeadership: boolean;
   room: string | null;
   available: boolean;
@@ -62,6 +70,12 @@ export type BusySlot = { slotStart: number; teacherId: string; sameChild: boolea
 export type Session = { token: string; expiresAt: number; teacherId?: string };
 
 export const CLASSES = ['7A', '7B', '7C', '8A', '8B', '9A', '9B', '10A', '10B', '11A', '11B', '12A', '12B'] as const;
+/** SD has one class per grade, named by the grade alone ("1" … "6"). */
+export const SD_CLASSES = ['1', '2', '3', '4', '5', '6'] as const;
+
+export const classesFor = (level: Level): readonly string[] => (level === 'sd' ? SD_CLASSES : CLASSES);
+export const levelOfClass = (cls: string): Level | null =>
+  /^[1-6]$/.test(cls) ? 'sd' : /^(7|8|9|10|11|12)[A-Z]$/.test(cls) ? 'smp_sma' : null;
 
 export const gradeOf = (cls: string) => parseInt(cls, 10);
 

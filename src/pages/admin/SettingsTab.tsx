@@ -1,4 +1,4 @@
-/** Event date, slot times/length, the booking open/close switch, the teacher PIN, and maintenance. */
+/** Event date, slot times/length per level (SMP–SMA and SD), the booking open/close switch, the teacher PIN, and maintenance. */
 import { useEffect, useState, type FormEvent } from 'react';
 import { KeyRound, LogOut, RotateCcw, Trash2, Users } from 'lucide-react';
 import { BottomSheet } from '../../components/BottomSheet';
@@ -9,8 +9,8 @@ import type { MaintenanceAction } from '../../lib/api/api';
 import { resetDemo } from '../../lib/api/demoApi';
 import { useI18n, type MessageKey } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
-import { fmtDate, fmtRange, slotStarts } from '../../lib/time';
-import { errorCode, type ErrorCode, type Settings } from '../../lib/types';
+import { fmtDate, fmtRange, scheduleFor, slotStarts } from '../../lib/time';
+import { errorCode, type ErrorCode, type Level, type Settings } from '../../lib/types';
 import { useAdmin } from './AdminPage';
 
 export function SettingsTab() {
@@ -22,39 +22,20 @@ export function SettingsTab() {
   useEffect(() => setF(settings), [settings]);
   if (!f || !settings) return null;
 
-  const valid = f.dayStart < f.dayEnd && /^\d{4}-\d{2}-\d{2}$/.test(f.eventDate);
-  const starts = valid ? slotStarts(f) : [];
+  const valid = f.dayStart < f.dayEnd && f.sdDayStart < f.sdDayEnd && /^\d{4}-\d{2}-\d{2}$/.test(f.eventDate);
   const changed = JSON.stringify(f) !== JSON.stringify(settings);
 
   return (
     <div className="max-w-xl space-y-5">
       <Card className="space-y-5 p-5">
         <Field label={t('a_s_date')} type="date" value={f.eventDate} onChange={(e) => setF({ ...f, eventDate: e.target.value })} hint={t('a_s_dateNote')} />
-        <div className="grid grid-cols-2 gap-4">
-          <Field label={t('a_s_start')} type="time" step={300} value={f.dayStart} onChange={(e) => setF({ ...f, dayStart: e.target.value })} />
-          <Field label={t('a_s_end')} type="time" step={300} value={f.dayEnd} onChange={(e) => setF({ ...f, dayEnd: e.target.value })} />
-        </div>
-        <SelectField
-          label={t('a_s_length')}
-          value={String(f.slotMinutes)}
-          onChange={(v) => setF({ ...f, slotMinutes: Number(v) })}
-          options={[5, 10, 15, 20, 30].map((m) => ({ value: String(m), label: t('minutes', { n: m }) }))}
-        />
+        {valid && <p className="-mt-2 text-sm font-semibold text-foreground">{fmtDate(f.eventDate, lang)}</p>}
+        <LevelTimes level="smp_sma" f={f} setF={setF} />
+        <LevelTimes level="sd" f={f} setF={setF} />
         <div className="flex items-center justify-between gap-3 rounded-md bg-surface-page px-4 py-3">
           <span className="text-sm font-semibold text-foreground">{t('a_s_open')}</span>
           <Switch checked={f.bookingOpen} onChange={(v) => setF({ ...f, bookingOpen: v })} label={t('a_s_open')} />
         </div>
-        {starts.length > 0 && (
-          <p className="rounded-md bg-action-tint px-4 py-3 text-sm text-foreground">
-            <span className="font-semibold">{fmtDate(f.eventDate, lang)}</span>
-            <br />
-            {t('a_s_preview', {
-              n: starts.length,
-              first: fmtRange(starts[0], f.slotMinutes),
-              last: fmtRange(starts[starts.length - 1], f.slotMinutes),
-            })}
-          </p>
-        )}
         <Button
           block
           loading={busy}
@@ -79,6 +60,41 @@ export function SettingsTab() {
         </Button>
       )}
     </div>
+  );
+}
+
+/** Start, end and slot length for one level, with a preview of the resulting slots. */
+function LevelTimes({ level, f, setF }: { level: Level; f: Settings; setF: (s: Settings) => void }) {
+  const { t } = useI18n();
+  const keys = level === 'sd' ? (['sdDayStart', 'sdDayEnd', 'sdSlotMinutes'] as const) : (['dayStart', 'dayEnd', 'slotMinutes'] as const);
+  const sch = scheduleFor(f, level);
+  const starts = sch.dayStart < sch.dayEnd && /^\d{4}-\d{2}-\d{2}$/.test(f.eventDate) ? slotStarts(sch) : [];
+  return (
+    <fieldset className="space-y-4 rounded-md border border-border p-4">
+      <legend className="px-1 text-sm font-bold text-foreground">{t(level === 'sd' ? 'a_s_sdTitle' : 'a_s_smpTitle')}</legend>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label={t('a_s_start')} type="time" step={300} value={sch.dayStart} onChange={(e) => setF({ ...f, [keys[0]]: e.target.value })} />
+        <Field label={t('a_s_end')} type="time" step={300} value={sch.dayEnd} onChange={(e) => setF({ ...f, [keys[1]]: e.target.value })} />
+      </div>
+      <SelectField
+        label={t('a_s_length')}
+        value={String(sch.slotMinutes)}
+        onChange={(v) => setF({ ...f, [keys[2]]: Number(v) })}
+        options={[5, 10, 15, 20, 30].map((m) => ({
+          value: String(m),
+          label: t('minutes', { n: m }),
+        }))}
+      />
+      {starts.length > 0 && (
+        <p className="rounded-md bg-action-tint px-4 py-3 text-sm text-foreground">
+          {t('a_s_preview', {
+            n: starts.length,
+            first: fmtRange(starts[0], sch.slotMinutes),
+            last: fmtRange(starts[starts.length - 1], sch.slotMinutes),
+          })}
+        </p>
+      )}
+    </fieldset>
   );
 }
 
@@ -123,13 +139,7 @@ function TeacherPinCard() {
           value={pin}
           onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
         />
-        <Field
-          label={t('a_password')}
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <Field label={t('a_password')} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         {error && <Notice tone="error">{errorText(error)}</Notice>}
         <Button type="submit" block loading={busy} disabled={pin.length < 4 || !password} icon={<KeyRound className="size-4" aria-hidden />}>
           {t('a_pin_save')}
@@ -139,10 +149,30 @@ function TeacherPinCard() {
   );
 }
 
-const ACTIONS: { id: MaintenanceAction; label: MessageKey; hint: MessageKey; icon: typeof LogOut }[] = [
-  { id: 'sign_out_teachers', label: 'a_m_signOutTeachers', hint: 'a_m_signOutTeachersHint', icon: LogOut },
-  { id: 'sign_out_all', label: 'a_m_signOutAll', hint: 'a_m_signOutAllHint', icon: Users },
-  { id: 'clear_bookings', label: 'a_m_clearBookings', hint: 'a_m_clearBookingsHint', icon: Trash2 },
+const ACTIONS: {
+  id: MaintenanceAction;
+  label: MessageKey;
+  hint: MessageKey;
+  icon: typeof LogOut;
+}[] = [
+  {
+    id: 'sign_out_teachers',
+    label: 'a_m_signOutTeachers',
+    hint: 'a_m_signOutTeachersHint',
+    icon: LogOut,
+  },
+  {
+    id: 'sign_out_all',
+    label: 'a_m_signOutAll',
+    hint: 'a_m_signOutAllHint',
+    icon: Users,
+  },
+  {
+    id: 'clear_bookings',
+    label: 'a_m_clearBookings',
+    hint: 'a_m_clearBookingsHint',
+    icon: Trash2,
+  },
 ];
 
 /** Sign everyone out or wipe all bookings. Every action asks for the admin password again. */

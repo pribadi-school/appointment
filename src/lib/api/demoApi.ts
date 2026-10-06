@@ -11,8 +11,8 @@
  */
 import { parseSeed } from '../../data/seedTeachers';
 import { childKey, firstNameKey, normalizePhone } from '../phone';
-import { jakartaTime, slotStarts } from '../time';
-import { AppError, type Booking, type Settings, type Teacher } from '../types';
+import { jakartaTime, minutesFor, overlaps, scheduleFor, slotStarts } from '../time';
+import { AppError, classesFor, levelOfClass, type Booking, type Settings, type Teacher } from '../types';
 import { KEYS, load, save } from '../storage';
 import type { Api, BookInput, LiveTopic } from './api';
 
@@ -38,17 +38,19 @@ const DEMO_NAMES = ['Aisyah', 'Bima', 'Citra', 'Dimas', 'Elena', 'Farhan', 'Gita
 
 function freshDb(): Db {
   const teachers: Teacher[] = parseSeed().map((t) => ({ ...t, id: uid() }));
-  const settings: Settings = { eventDate: '2026-12-19', dayStart: '08:30', dayEnd: '12:30', slotMinutes: 10, bookingOpen: true };
+  const settings: Settings = {
+    eventDate: '2026-12-19', dayStart: '08:30', dayEnd: '12:30', slotMinutes: 10, bookingOpen: true,
+    sdDayStart: '08:00', sdDayEnd: '12:00', sdSlotMinutes: 15,
+  };
   const db: Db = { settings, teachers, bookings: [], sessions: [] };
   // Pre-fill some bookings so the board looks like a real morning.
   if (!isTest) {
-    const starts = slotStarts(settings);
     let n = 0;
     for (const t of teachers.filter((t) => t.available)) {
-      for (const s of starts) {
+      for (const s of slotStarts(scheduleFor(settings, t.level))) {
         if (Math.random() < 0.32) {
           const child = DEMO_NAMES[n % DEMO_NAMES.length];
-          db.bookings.push(demoBooking(t.id, s, child, n));
+          db.bookings.push(demoBooking(t, s, child, n));
           n++;
         }
       }
@@ -57,8 +59,10 @@ function freshDb(): Db {
   return db;
 }
 
-function demoBooking(teacherId: string, slotStart: number, child: string, n: number): Booking {
-  const cls = ['7A', '7B', '8A', '8B', '9A', '9B', '10A', '10B', '11A', '11B', '12A', '12B'][n % 12];
+function demoBooking(teacher: Teacher, slotStart: number, child: string, n: number): Booking {
+  const classes = teacher.level === 'sd' ? [teacher.homeroomClass ?? '1'] : classesFor('smp_sma');
+  const cls = classes[n % classes.length];
+  const teacherId = teacher.id;
   return {
     id: uid(),
     code: code(),
@@ -95,8 +99,18 @@ function write(db: Db, topic: LiveTopic) {
   channel?.postMessage(topic);
 }
 
-function isValidSlot(db: Db, slot: number) {
-  return slotStarts(db.settings).includes(slot);
+function isValidSlot(db: Db, slot: number, teacher: Teacher | undefined) {
+  return Boolean(teacher) && slotStarts(scheduleFor(db.settings, teacher!.level)).includes(slot);
+}
+
+/** Same as private.parent_overlaps(): any overlap counts (SD and SMP–SMA slot lengths differ). */
+function parentBusy(db: Db, phone: string, slot: number, minutes: number, excludeId?: string) {
+  const level = new Map(db.teachers.map((t) => [t.id, t.level]));
+  return db.bookings.some(
+    (b) =>
+      b.kind === 'booking' && b.phone === phone && b.id !== excludeId &&
+      overlaps(b.slotStart, minutesFor(db.settings, level.get(b.teacherId) ?? 'smp_sma'), slot, minutes),
+  );
 }
 
 function session(db: Db, token: string, role: 'admin' | 'teacher') {
@@ -109,7 +123,7 @@ function session(db: Db, token: string, role: 'admin' | 'teacher') {
 function insertBooking(db: Db, i: BookInput, by: 'parent' | 'admin'): Booking {
   const parentName = i.parentName.trim();
   const childName = i.childName.trim().replace(/\s+/g, ' ');
-  if (parentName.length < 2 || childName.length < 2 || !/^(7|8|9|10|11|12)[A-Z]$/.test(i.childClass)) {
+  if (parentName.length < 2 || childName.length < 2 || !levelOfClass(i.childClass)) {
     throw new AppError('INVALID_INPUT');
   }
   let phone: string | null = null;
@@ -117,12 +131,14 @@ function insertBooking(db: Db, i: BookInput, by: 'parent' | 'admin'): Booking {
     phone = normalizePhone(i.phone);
     if (!phone) throw new AppError('INVALID_PHONE');
   }
-  if (!db.teachers.some((t) => t.id === i.teacherId && t.available)) throw new AppError('TEACHER_UNAVAILABLE');
-  if (!isValidSlot(db, i.slotStart)) throw new AppError('INVALID_SLOT');
+  const teacher = db.teachers.find((t) => t.id === i.teacherId && t.available);
+  if (!teacher) throw new AppError('TEACHER_UNAVAILABLE');
+  if (levelOfClass(i.childClass) !== teacher.level) throw new AppError('INVALID_INPUT');
+  if (!isValidSlot(db, i.slotStart, teacher)) throw new AppError('INVALID_SLOT');
+  if (phone && parentBusy(db, phone, i.slotStart, minutesFor(db.settings, teacher.level))) throw new AppError('PARENT_BUSY');
   if (db.bookings.some((b) => b.teacherId === i.teacherId && b.slotStart === i.slotStart)) throw new AppError('SLOT_TAKEN');
   if (phone) {
     const mine = db.bookings.filter((b) => b.kind === 'booking' && b.phone === phone);
-    if (mine.some((b) => b.slotStart === i.slotStart)) throw new AppError('PARENT_BUSY');
     if (mine.some((b) => b.teacherId === i.teacherId && childKey(b.childName ?? '') === childKey(childName))) {
       throw new AppError('ALREADY_BOOKED_TEACHER');
     }
@@ -171,14 +187,14 @@ function startSimulation() {
   simTimer = setInterval(() => {
     if (document.hidden) return;
     const db = read();
-    const free: [string, number][] = [];
+    const free: [Teacher, number][] = [];
     for (const t of db.teachers.filter((t) => t.available))
-      for (const s of slotStarts(db.settings))
-        if (s > Date.now() && !db.bookings.some((b) => b.teacherId === t.id && b.slotStart === s)) free.push([t.id, s]);
+      for (const s of slotStarts(scheduleFor(db.settings, t.level)))
+        if (s > Date.now() && !db.bookings.some((b) => b.teacherId === t.id && b.slotStart === s)) free.push([t, s]);
     if (!free.length) return;
-    const [teacherId, slot] = free[Math.floor(Math.random() * free.length)];
+    const [teacher, slot] = free[Math.floor(Math.random() * free.length)];
     const n = db.bookings.length;
-    db.bookings.push(demoBooking(teacherId, slot, DEMO_NAMES[n % DEMO_NAMES.length], n));
+    db.bookings.push(demoBooking(teacher, slot, DEMO_NAMES[n % DEMO_NAMES.length], n));
     write(db, 'slots');
   }, 35_000);
 }
@@ -298,12 +314,14 @@ export function createDemoApi(): Api {
       await wait();
       const db = read();
       session(db, token, 'admin');
-      if (!isValidSlot(db, slotStart)) throw new AppError('INVALID_SLOT');
       const b = db.bookings.find((x) => x.id === id);
-      if (!b) throw new AppError('NOT_FOUND');
-      if (db.bookings.some((x) => x.id !== id && x.teacherId === teacherId && x.slotStart === slotStart)) throw new AppError('SLOT_TAKEN');
-      if (b.phone && db.bookings.some((x) => x.id !== id && x.kind === 'booking' && x.phone === b.phone && x.slotStart === slotStart))
+      const teacher = db.teachers.find((t) => t.id === teacherId);
+      if (!b || !teacher) throw new AppError('NOT_FOUND');
+      if (!isValidSlot(db, slotStart, teacher)) throw new AppError('INVALID_SLOT');
+      if (b.kind === 'booking' && levelOfClass(b.childClass ?? '') !== teacher.level) throw new AppError('INVALID_INPUT');
+      if (b.kind === 'booking' && b.phone && parentBusy(db, b.phone, slotStart, minutesFor(db.settings, teacher.level), b.id))
         throw new AppError('PARENT_BUSY');
+      if (db.bookings.some((x) => x.id !== id && x.teacherId === teacherId && x.slotStart === slotStart)) throw new AppError('SLOT_TAKEN');
       b.teacherId = teacherId;
       b.slotStart = slotStart;
       write(db, 'slots');
@@ -327,7 +345,7 @@ export function createDemoApi(): Api {
       await wait();
       const db = read();
       session(db, token, 'admin');
-      if (!isValidSlot(db, slotStart)) throw new AppError('INVALID_SLOT');
+      if (!isValidSlot(db, slotStart, db.teachers.find((t) => t.id === teacherId))) throw new AppError('INVALID_SLOT');
       if (db.bookings.some((b) => b.teacherId === teacherId && b.slotStart === slotStart)) throw new AppError('SLOT_TAKEN');
       db.bookings.push({
         id: uid(), code: code(), teacherId, slotStart, kind: 'blocked', status: 'booked', parentName: null, childName: null,
@@ -339,9 +357,19 @@ export function createDemoApi(): Api {
       await wait();
       const db = read();
       session(db, token, 'admin');
-      if (t.name.trim().length < 2) throw new AppError('INVALID_INPUT');
+      const level = t.level ?? 'smp_sma';
+      const grades = t.grades ?? [];
+      const homeroom = t.homeroomClass || null;
+      if (
+        t.name.trim().length < 2 ||
+        grades.some((g) => (level === 'sd' ? g < 1 || g > 6 : g < 7 || g > 12)) ||
+        (level === 'sd' ? !homeroom || levelOfClass(homeroom) !== 'sd' : homeroom !== null && levelOfClass(homeroom) !== 'smp_sma')
+      ) {
+        throw new AppError('INVALID_INPUT');
+      }
       const clean: Omit<Teacher, 'id' | 'sortOrder'> = {
         name: t.name.trim(),
+        level,
         subject: t.subject?.trim() || null,
         grades: t.grades ?? [],
         role: t.role?.trim() || null,
@@ -353,6 +381,14 @@ export function createDemoApi(): Api {
       if (t.id) {
         const existing = db.teachers.find((x) => x.id === t.id);
         if (!existing) throw new AppError('NOT_FOUND');
+        // Changing the level must not strand existing bookings (same as SQL).
+        const after = { ...existing, ...clean };
+        const stranded = db.bookings.some(
+          (b) =>
+            b.teacherId === existing.id &&
+            (!isValidSlot(db, b.slotStart, after) || (b.kind === 'booking' && levelOfClass(b.childClass ?? '') !== level)),
+        );
+        if (stranded) throw new AppError('SCHEDULE_CONFLICT');
         Object.assign(existing, clean);
         write(db, 'teachers');
         return existing.id;
@@ -384,11 +420,12 @@ export function createDemoApi(): Api {
       await wait();
       const db = read();
       session(db, token, 'admin');
-      if (s.dayStart >= s.dayEnd || s.slotMinutes < 5 || s.slotMinutes > 60) throw new AppError('INVALID_INPUT');
+      const bad = (start: string, end: string, len: number) => start >= end || len < 5 || len > 60;
+      if (bad(s.dayStart, s.dayEnd, s.slotMinutes) || bad(s.sdDayStart, s.sdDayEnd, s.sdSlotMinutes)) throw new AppError('INVALID_INPUT');
       const shift = jakartaTime(s.eventDate, '00:00') - jakartaTime(db.settings.eventDate, '00:00');
       const next = { ...db, settings: s, bookings: db.bookings.map((b) => ({ ...b, slotStart: b.slotStart + shift })) };
-      const valid = new Set(slotStarts(s));
-      if (next.bookings.some((b) => !valid.has(b.slotStart))) throw new AppError('SCHEDULE_CONFLICT');
+      if (next.bookings.some((b) => !isValidSlot(next, b.slotStart, db.teachers.find((t) => t.id === b.teacherId))))
+        throw new AppError('SCHEDULE_CONFLICT');
       write(next, 'settings');
       write(next, 'slots');
     },

@@ -15,8 +15,8 @@ import { useI18n } from '../lib/i18n';
 import { useLive, useNow } from '../lib/live';
 import { normalizePhone } from '../lib/phone';
 import { KEYS, load, save } from '../lib/storage';
-import { initials } from '../lib/teachers';
-import { fmtDate, fmtRange, slotState } from '../lib/time';
+import { avatarText, classLabel } from '../lib/teachers';
+import { fmtDate, fmtRange, minutesFor, slotState } from '../lib/time';
 import { errorCode, type Booking, type ErrorCode, type ParentDetails } from '../lib/types';
 import { scheduleMessage, waLink } from '../lib/whatsapp';
 
@@ -98,6 +98,8 @@ export function MySchedulePage() {
   const byId = new Map(teachers.map((x) => [x.id, x]));
   const showLookup = !query || (list && list.length === 0 && !loading);
   const teacherName = (b: Booking) => byId.get(b.teacherId)?.name ?? '—';
+  // SD and SMP–SMA slots have different lengths.
+  const minutesOf = (b: Booking) => (settings ? minutesFor(settings, byId.get(b.teacherId)?.level ?? 'smp_sma') : 10);
 
   return (
     <div className="min-h-dvh">
@@ -155,14 +157,14 @@ export function MySchedulePage() {
             <ol className="mt-5 space-y-3">
               {list.map((b) => {
                 const teacher = byId.get(b.teacherId);
-                const st = b.status === 'no_show' ? 'noShow' : slotState({ status: b.status === 'done' ? 'done' : 'taken' }, b.slotStart, settings.slotMinutes, now);
+                const st = b.status === 'no_show' ? 'noShow' : slotState({ status: b.status === 'done' ? 'done' : 'taken' }, b.slotStart, minutesOf(b), now);
                 const canCancel = b.status === 'booked' && b.slotStart > now;
                 return (
                   <Card as="li" key={b.id} className="p-4 animate-step-in">
                     <div className="flex items-start gap-3">
                       <div className="w-[68px] shrink-0">
-                        <p className="text-xl leading-tight font-extrabold text-action tabular-nums">{fmtRange(b.slotStart, settings.slotMinutes).split(' – ')[0]}</p>
-                        <p className="text-xs text-muted-foreground tabular-nums">– {fmtRange(b.slotStart, settings.slotMinutes).split(' – ')[1]}</p>
+                        <p className="text-xl leading-tight font-extrabold text-action tabular-nums">{fmtRange(b.slotStart, minutesOf(b)).split(' – ')[0]}</p>
+                        <p className="text-xs text-muted-foreground tabular-nums">– {fmtRange(b.slotStart, minutesOf(b)).split(' – ')[1]}</p>
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
@@ -174,13 +176,15 @@ export function MySchedulePage() {
                             }
                           />
                         </div>
-                        {teacher?.subject && <p className="text-[13px] text-muted-foreground">{teacher.subject}</p>}
+                        {(teacher?.subject || teacher?.level === 'sd') && (
+                          <p className="text-[13px] text-muted-foreground">{teacher.subject ?? t('sd_teachers')}</p>
+                        )}
                         <p className="mt-1.5 flex items-center gap-1 text-sm font-semibold text-foreground">
                           <MapPin className="size-4 text-muted-foreground" aria-hidden />
                           {teacher?.room ?? t('roomTbc')}
                         </p>
                         <p className="mt-1 text-[13px] text-muted-foreground">
-                          <span className="font-semibold text-accent">{b.childName}</span> ({b.childClass}) · {t('my_code', { code: b.code })}
+                          <span className="font-semibold text-accent">{b.childName}</span> ({classLabel(b.childClass, t)}) · {t('my_code', { code: b.code })}
                         </p>
                       </div>
                     </div>
@@ -198,7 +202,7 @@ export function MySchedulePage() {
             </ol>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Link to="/?step=teacher" className={buttonClass('primary', 'md', true)}>
+              <Link to="/" className={buttonClass('primary', 'md', true)}>
                 <Plus className="size-5" aria-hidden />
                 {t('my_bookMore')}
               </Link>
@@ -243,9 +247,9 @@ export function MySchedulePage() {
       >
         {toCancel && settings && (
           <div className="flex items-center gap-3">
-            <Avatar text={initials(teacherName(toCancel))} />
+            <Avatar text={avatarText(byId.get(toCancel.teacherId))} />
             <p className="text-[15px] text-foreground">
-              {t('my_cancelBody', { teacher: teacherName(toCancel), time: fmtRange(toCancel.slotStart, settings.slotMinutes) })}
+              {t('my_cancelBody', { teacher: teacherName(toCancel), time: fmtRange(toCancel.slotStart, minutesOf(toCancel)) })}
             </p>
           </div>
         )}

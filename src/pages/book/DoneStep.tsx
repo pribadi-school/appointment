@@ -7,6 +7,7 @@ import { api } from '../../lib/api';
 import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { normalizePhone } from '../../lib/phone';
+import { classLabel } from '../../lib/teachers';
 import { fmtTime } from '../../lib/time';
 import { scheduleMessage, waLink } from '../../lib/whatsapp';
 import type { Flow } from '../BookPage';
@@ -64,7 +65,8 @@ export function DoneStep({ flow }: { flow: Flow }) {
       <Card className="mx-auto mt-6 max-w-sm p-5 text-left">
         <p className="text-sm font-bold text-foreground">{teacher.name}</p>
         <p className="text-[13px] text-muted-foreground">
-          {teacher.subject ?? ''} · <span className="font-semibold text-accent">{flow.details.childName}</span> ({flow.details.childClass})
+          {teacher.subject ?? t('sd_teachers')} · <span className="font-semibold text-accent">{flow.details.childName}</span> (
+          {classLabel(flow.details.childClass, t)})
         </p>
         <div className="mt-4 flex items-end justify-between border-t border-border pt-4">
           <div>
@@ -82,13 +84,13 @@ export function DoneStep({ flow }: { flow: Flow }) {
           icon={<Plus className="size-5" aria-hidden />}
           block
           onClick={() => {
-            // Keeps parent details; back to "Choose a teacher".
-            flow.go('teacher');
+            // Keeps parent details; back to "Choose a teacher" (SD: to the details, for another child/class).
+            flow.go(flow.level === 'sd' ? 'details' : 'teacher');
             flow.setSlotStart(null);
             flow.setTeacherId(null);
           }}
         >
-          {t('done_another')}
+          {t(flow.level === 'sd' ? 'sd_another' : 'done_another')}
         </Button>
         <a
           href={wa ?? undefined}

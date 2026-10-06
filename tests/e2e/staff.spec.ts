@@ -58,7 +58,7 @@ test('admin: book a walk-in, block a break, export, edit a teacher, change setti
   // Saved = finished saving and the form has no unsaved changes any more.
   await expect(page.getByRole('button', { name: 'Save' })).not.toHaveAttribute('aria-busy');
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
-  await page.goto('/');
+  await page.goto('/smp-sma');
   await expect(page.getByText('Booking is closed')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled();
 
@@ -71,7 +71,7 @@ test('admin: book a walk-in, block a break, export, edit a teacher, change setti
 test('teacher: sign in with name + PIN, own schedule with parent details, Done', async ({ page, context }) => {
   // A parent books first.
   const parent = await context.newPage();
-  await parent.goto('/');
+  await parent.goto('/smp-sma');
   await parent.getByLabel('Your name').fill('Ibu Sari');
   await parent.getByLabel('Child’s name').fill('Galih');
   await parent.getByRole('button', { name: /Child’s class/ }).click();

@@ -1,19 +1,20 @@
-/** Edit teachers, subjects, grades, rooms — no code needed. */
+/** Edit teachers (SMP–SMA) and SD classes, subjects, grades, rooms — no code needed. */
 import { useMemo, useState } from 'react';
 import { MapPin, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { BottomSheet } from '../../components/BottomSheet';
-import { Avatar, Button, Card, Field, SelectField, StatusPill, Switch, cx } from '../../components/ui';
+import { Avatar, Button, Card, Field, Segmented, SelectField, StatusPill, Switch, cx } from '../../components/ui';
 import { api } from '../../lib/api';
 import { isLeadershipRole, parseHomeroom } from '../../data/seedTeachers';
 import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
-import { initials } from '../../lib/teachers';
-import { CLASSES, type Teacher } from '../../lib/types';
+import { avatarText, classLabel } from '../../lib/teachers';
+import { CLASSES, SD_CLASSES, type Level, type Teacher } from '../../lib/types';
 import { useAdmin } from './AdminPage';
 
 const NEW: Teacher = {
   id: '',
   name: '',
+  level: 'smp_sma',
   subject: null,
   grades: [],
   role: null,
@@ -30,13 +31,24 @@ export function TeachersTab() {
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState<Teacher | null>(null);
   const [rooms, setRooms] = useState(false);
+  const [level, setLevel] = useState<'all' | Level>('all');
 
   const list = useMemo(
     () =>
       [...teachers]
+        .filter((x) => level === 'all' || x.level === level)
         .filter((x) => !q || `${x.name} ${x.subject ?? ''} ${x.room ?? ''}`.toLowerCase().includes(q.toLowerCase()))
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    [teachers, q],
+        // SD classes in grade order, teachers by name.
+        .sort((a, b) =>
+          a.level === b.level
+            ? a.level === 'sd'
+              ? (a.homeroomClass ?? '').localeCompare(b.homeroomClass ?? '')
+              : a.name.localeCompare(b.name)
+            : a.level === 'sd'
+              ? -1
+              : 1,
+        ),
+    [teachers, q, level],
   );
 
   return (
@@ -53,6 +65,16 @@ export function TeachersTab() {
             className="h-11 w-full rounded-full bg-surface pr-3 pl-10 text-base ring-1 ring-border-strong outline-none focus:ring-2 focus:ring-action"
           />
         </div>
+        <Segmented
+          label={t('a_t_level')}
+          value={level}
+          onChange={setLevel}
+          options={[
+            { value: 'all', label: t('a_lvl_all') },
+            { value: 'sd', label: t('sd') },
+            { value: 'smp_sma', label: t('lvl_smp') },
+          ]}
+        />
         <Button size="sm" variant="secondary" icon={<MapPin className="size-4" aria-hidden />} onClick={() => setRooms(true)}>
           {t('a_roomsBySubject')}
         </Button>
@@ -64,23 +86,30 @@ export function TeachersTab() {
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {list.map((x) => (
           <Card key={x.id} className={cx('flex items-start gap-3 p-4', !x.available && 'opacity-70')}>
-            <Avatar text={initials(x.name)} muted={!x.available} />
+            <Avatar text={avatarText(x)} muted={!x.available} />
             <div className="min-w-0 flex-1">
               <p className="truncate font-bold text-foreground">{x.name}</p>
               <p className="truncate text-[13px] text-muted-foreground">
-                {x.subject ?? '—'} · {x.grades.length ? x.grades.join(', ') : '7–12'}
+                {x.level === 'sd'
+                  ? `${t('lvl_sd')} · ${classLabel(x.homeroomClass, t)}`
+                  : `${x.subject ?? '—'} · ${x.grades.length ? x.grades.join(', ') : '7–12'}`}
               </p>
               <p className="truncate text-[13px] text-muted-foreground">
                 <MapPin className="mr-0.5 inline size-3" aria-hidden />
                 {x.room ?? '—'}
-                {x.homeroomClass && ` · ${t('a_t_homeroom')} ${x.homeroomClass}`}
+                {x.homeroomClass && x.level === 'smp_sma' && ` · ${t('a_t_homeroom')} ${x.homeroomClass}`}
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {!x.available && <StatusPill status="taken" label={t('a_t_unavailable')} />}
                 {x.isLeadership && <StatusPill status="available" label={t('t_leadership')} />}
               </div>
             </div>
-            <button type="button" onClick={() => setEditing(x)} aria-label={`${t('edit')}: ${x.name}`} className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-action hover:bg-action-tint">
+            <button
+              type="button"
+              onClick={() => setEditing(x)}
+              aria-label={`${t('edit')}: ${x.name}`}
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-action hover:bg-action-tint"
+            >
               <Pencil className="size-4" aria-hidden />
             </button>
           </Card>
@@ -103,6 +132,21 @@ function TeacherSheet({ teacher, onClose }: { teacher: Teacher; onClose: () => v
   const count = (bookings ?? []).filter((b) => b.teacherId === teacher.id && b.kind === 'booking').length;
 
   const set = <K extends keyof Teacher>(k: K, v: Teacher[K]) => setF((x) => ({ ...x, [k]: v }));
+  const sd = f.level === 'sd';
+  // Switching level resets what only makes sense for the other level.
+  const setLevel = (level: Level) =>
+    setF((x) =>
+      x.level === level
+        ? x
+        : {
+            ...x,
+            level,
+            grades: level === 'sd' ? [1] : [],
+            homeroomClass: level === 'sd' ? '1' : null,
+            subject: level === 'sd' ? null : x.subject,
+            isLeadership: false,
+          },
+    );
 
   const saveTeacher = async () => {
     setBusy(true);
@@ -118,62 +162,96 @@ function TeacherSheet({ teacher, onClose }: { teacher: Teacher; onClose: () => v
       size="lg"
       title={isNew ? t('a_addTeacher') : t('a_editTeacher')}
       footer={
-        <Button block loading={busy} disabled={f.name.trim().length < 2} onClick={saveTeacher}>
+        <Button block loading={busy} disabled={f.name.trim().length < 2 || (sd && !f.homeroomClass)} onClick={saveTeacher}>
           {t('save')}
         </Button>
       }
     >
       <div className="space-y-4">
-        <Field label={t('a_t_name')} value={f.name} onChange={(e) => set('name', e.target.value)} />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={t('a_t_subject')} value={f.subject ?? ''} onChange={(e) => set('subject', e.target.value || null)} />
-          <Field label={t('a_t_room')} value={f.room ?? ''} onChange={(e) => set('room', e.target.value || null)} />
+        <div>
+          <span className="mb-1.5 block text-sm font-semibold text-foreground">{t('a_t_level')}</span>
+          <Segmented
+            label={t('a_t_level')}
+            value={f.level}
+            onChange={setLevel}
+            options={[
+              { value: 'smp_sma', label: t('lvl_smp') },
+              { value: 'sd', label: t('lvl_sd') },
+            ]}
+          />
         </div>
-        <fieldset>
-          <legend className="mb-1.5 text-sm font-semibold text-foreground">{t('a_t_grades')}</legend>
-          <div className="flex flex-wrap gap-2">
-            {[7, 8, 9, 10, 11, 12].map((g) => {
-              const on = f.grades.includes(g);
-              return (
-                <button
-                  key={g}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => set('grades', on ? f.grades.filter((x) => x !== g) : [...f.grades, g].sort((a, b) => a - b))}
-                  className={cx(
-                    'h-10 w-12 rounded-md text-sm font-bold transition-colors duration-200',
-                    on ? 'bg-action text-on-primary' : 'bg-surface text-foreground ring-1 ring-border-strong',
-                  )}
-                >
-                  {g}
-                </button>
-              );
-            })}
+        <Field label={t(sd ? 'a_t_nameSd' : 'a_t_name')} value={f.name} onChange={(e) => set('name', e.target.value)} />
+        {sd ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SelectField
+              label={t('a_t_sdClass')}
+              value={f.homeroomClass ?? '1'}
+              onChange={(v) => setF((x) => ({ ...x, homeroomClass: v, grades: [Number(v)] }))}
+              options={SD_CLASSES.map((c) => ({
+                value: c,
+                label: classLabel(c, t),
+              }))}
+            />
+            <Field label={t('a_t_room')} value={f.room ?? ''} onChange={(e) => set('room', e.target.value || null)} />
           </div>
-          <p className="mt-1.5 text-[13px] text-muted-foreground">{t('a_t_gradesHint')}</p>
-        </fieldset>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field
-            label={t('a_t_role')}
-            placeholder={t('a_t_rolePh')}
-            value={f.role ?? ''}
-            onChange={(e) => {
-              const role = e.target.value || null;
-              // Fill homeroom + leadership automatically from the role text.
-              setF((x) => ({ ...x, role, homeroomClass: parseHomeroom(role) ?? x.homeroomClass, isLeadership: isLeadershipRole(role, x.subject) || x.isLeadership }));
-            }}
-          />
-          <SelectField
-            label={t('a_t_homeroom')}
-            value={f.homeroomClass ?? ''}
-            onChange={(v) => set('homeroomClass', v || null)}
-            options={[{ value: '', label: t('a_t_none') }, ...CLASSES.map((c) => ({ value: c, label: c }))]}
-          />
-        </div>
-        <div className="flex items-center justify-between gap-3 rounded-md bg-surface-page px-4 py-3">
-          <span className="text-sm font-semibold text-foreground">{t('a_t_leadership')}</span>
-          <Switch checked={f.isLeadership} onChange={(v) => set('isLeadership', v)} label={t('a_t_leadership')} />
-        </div>
+        ) : (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label={t('a_t_subject')} value={f.subject ?? ''} onChange={(e) => set('subject', e.target.value || null)} />
+              <Field label={t('a_t_room')} value={f.room ?? ''} onChange={(e) => set('room', e.target.value || null)} />
+            </div>
+            <fieldset>
+              <legend className="mb-1.5 text-sm font-semibold text-foreground">{t('a_t_grades')}</legend>
+              <div className="flex flex-wrap gap-2">
+                {[7, 8, 9, 10, 11, 12].map((g) => {
+                  const on = f.grades.includes(g);
+                  return (
+                    <button
+                      key={g}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => set('grades', on ? f.grades.filter((x) => x !== g) : [...f.grades, g].sort((a, b) => a - b))}
+                      className={cx(
+                        'h-10 w-12 rounded-md text-sm font-bold transition-colors duration-200',
+                        on ? 'bg-action text-on-primary' : 'bg-surface text-foreground ring-1 ring-border-strong',
+                      )}
+                    >
+                      {g}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 text-[13px] text-muted-foreground">{t('a_t_gradesHint')}</p>
+            </fieldset>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label={t('a_t_role')}
+                placeholder={t('a_t_rolePh')}
+                value={f.role ?? ''}
+                onChange={(e) => {
+                  const role = e.target.value || null;
+                  // Fill homeroom + leadership automatically from the role text.
+                  setF((x) => ({
+                    ...x,
+                    role,
+                    homeroomClass: parseHomeroom(role) ?? x.homeroomClass,
+                    isLeadership: isLeadershipRole(role, x.subject) || x.isLeadership,
+                  }));
+                }}
+              />
+              <SelectField
+                label={t('a_t_homeroom')}
+                value={f.homeroomClass ?? ''}
+                onChange={(v) => set('homeroomClass', v || null)}
+                options={[{ value: '', label: t('a_t_none') }, ...CLASSES.map((c) => ({ value: c, label: c }))]}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-md bg-surface-page px-4 py-3">
+              <span className="text-sm font-semibold text-foreground">{t('a_t_leadership')}</span>
+              <Switch checked={f.isLeadership} onChange={(v) => set('isLeadership', v)} label={t('a_t_leadership')} />
+            </div>
+          </>
+        )}
         <div className="flex items-center justify-between gap-3 rounded-md bg-surface-page px-4 py-3">
           <span className="text-sm font-semibold text-foreground">{t('a_t_available')}</span>
           <Switch checked={f.available} onChange={(v) => set('available', v)} label={t('a_t_available')} />

@@ -8,15 +8,17 @@ import { Button, Card, Field, FieldError, Notice, Skeleton, cx } from '../../com
 import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { normalizePhone } from '../../lib/phone';
-import { fmtDate } from '../../lib/time';
-import { CLASSES, type ParentDetails } from '../../lib/types';
+import { classLabel } from '../../lib/teachers';
+import { fmtDate, scheduleFor } from '../../lib/time';
+import { classesFor, type ParentDetails } from '../../lib/types';
 import type { Flow } from '../BookPage';
 
 type Errors = Partial<Record<keyof ParentDetails, string>>;
 
 export function DetailsStep({ flow }: { flow: Flow }) {
   const { t, lang } = useI18n();
-  const { settings, loading } = useLive();
+  const { settings, loading, teachers } = useLive();
+  const sch = settings ? scheduleFor(settings, flow.level) : null;
   const [form, setForm] = useState<ParentDetails>(flow.details);
   const [errors, setErrors] = useState<Errors>({});
   const [sheet, setSheet] = useState(false);
@@ -38,6 +40,13 @@ export function DetailsStep({ flow }: { flow: Flow }) {
     if (form.parentName.trim().length < 2) errs.parentName = t('v_parentName');
     if (form.childName.trim().length < 2) errs.childName = t('v_childName');
     if (!form.childClass) errs.childClass = t('v_childClass');
+    // SD: the class must have its homeroom teachers open for booking.
+    else if (
+      flow.level === 'sd' &&
+      !loading &&
+      !teachers.some((x) => x.level === 'sd' && x.available && x.homeroomClass === form.childClass)
+    )
+      errs.childClass = t('sd_noClass');
     if (!normalizePhone(form.phone)) errs.phone = t('v_phone');
     setErrors(errs);
     const first = (Object.keys(refs) as (keyof ParentDetails)[]).find((k) => errs[k]);
@@ -51,14 +60,14 @@ export function DetailsStep({ flow }: { flow: Flow }) {
       childClass: form.childClass,
       phone: form.phone.trim(),
     });
-    flow.go('teacher');
+    flow.go(flow.level === 'sd' ? 'time' : 'teacher');
   };
 
   const closed = settings && !settings.bookingOpen;
 
   return (
     <>
-      {loading || !settings ? (
+      {loading || !settings || !sch ? (
         <Skeleton className="mb-5 h-20 rounded-lg" />
       ) : (
         <Card className="mb-5 flex items-center gap-4 p-4">
@@ -69,7 +78,7 @@ export function DetailsStep({ flow }: { flow: Flow }) {
             <p className="font-bold text-foreground">{fmtDate(settings.eventDate, lang)}</p>
             <p className="mt-0.5 flex items-center gap-1.5 text-muted-foreground">
               <Clock className="size-3.5" aria-hidden />
-              {settings.dayStart.replace(':', '.')} – {settings.dayEnd.replace(':', '.')} · {t('minutes', { n: settings.slotMinutes })}
+              {sch.dayStart.replace(':', '.')} – {sch.dayEnd.replace(':', '.')} · {t('minutes', { n: sch.slotMinutes })}
             </p>
           </div>
         </Card>
@@ -109,9 +118,9 @@ export function DetailsStep({ flow }: { flow: Flow }) {
         </div>
       )}
 
-      {settings && !closed && (
+      {sch && !closed && (
         <p className="mb-5 text-[15px] text-muted-foreground">
-          {t('intro', { minutes: settings.slotMinutes })}
+          {t(flow.level === 'sd' ? 'intro_sd' : 'intro', { minutes: sch.slotMinutes })}
         </p>
       )}
 
@@ -153,7 +162,7 @@ export function DetailsStep({ flow }: { flow: Flow }) {
             )}
           >
             <span id="class-value" className={form.childClass ? 'font-semibold text-foreground' : 'text-muted-foreground/70'}>
-              {form.childClass || t('f_chooseClass')}
+              {form.childClass ? classLabel(form.childClass, t) : t('f_chooseClass')}
             </span>
             <ChevronDown className="size-5 text-muted-foreground" aria-hidden />
           </button>
@@ -175,14 +184,17 @@ export function DetailsStep({ flow }: { flow: Flow }) {
       </form>
 
       <BottomSheet open={sheet} onClose={() => setSheet(false)} title={t('classSheetTitle')}>
-        {[
-          { title: t('smp'), grades: [7, 8, 9] },
-          { title: t('sma'), grades: [10, 11, 12] },
-        ].map((group) => (
+        {(flow.level === 'sd'
+          ? [{ title: t('sd'), grades: [1, 2, 3, 4, 5, 6] }]
+          : [
+              { title: t('smp'), grades: [7, 8, 9] },
+              { title: t('sma'), grades: [10, 11, 12] },
+            ]
+        ).map((group) => (
           <div key={group.title} className="mb-4 last:mb-0">
             <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{group.title}</p>
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {CLASSES.filter((c) => group.grades.includes(parseInt(c, 10))).map((c) => (
+              {classesFor(flow.level).filter((c) => group.grades.includes(parseInt(c, 10))).map((c) => (
                 <button
                   key={c}
                   type="button"
@@ -199,7 +211,7 @@ export function DetailsStep({ flow }: { flow: Flow }) {
                       : 'bg-surface text-foreground ring-1 ring-border-strong hover:ring-action',
                   )}
                 >
-                  {c}
+                  {classLabel(c, t)}
                 </button>
               ))}
             </div>

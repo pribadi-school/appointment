@@ -15,8 +15,8 @@ import { useI18n } from '../lib/i18n';
 import { useLive, useNow } from '../lib/live';
 import { formatPhone } from '../lib/phone';
 import { KEYS, load, save } from '../lib/storage';
-import { initials } from '../lib/teachers';
-import { currentSlotIndex, fmtRange, slotStarts } from '../lib/time';
+import { avatarText, classLabel } from '../lib/teachers';
+import { currentSlotIndex, fmtRange, scheduleFor, slotStarts } from '../lib/time';
 import { errorCode, type Booking, type ErrorCode, type Session } from '../lib/types';
 import { waLink } from '../lib/whatsapp';
 
@@ -144,10 +144,12 @@ function TeacherLogin({ onSignIn }: { onSignIn: (s: Session) => void }) {
                 }}
                 className={cx('flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-surface-page', x.id === teacherId && 'bg-action-tint')}
               >
-                <Avatar text={initials(x.name)} size="sm" muted={!x.available} />
+                <Avatar text={avatarText(x)} size="sm" muted={!x.available} />
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold text-foreground">{x.name}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{x.subject ?? x.role ?? ''}</span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {x.level === 'sd' ? `${t('lvl_sd')} · ${classLabel(x.homeroomClass, t)}` : (x.subject ?? x.role ?? '')}
+                  </span>
                 </span>
               </button>
             </li>
@@ -187,8 +189,10 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
     fetchSchedule();
   }, [fetchSchedule, version]);
 
-  const starts = useMemo(() => (settings ? slotStarts(settings) : []), [settings]);
-  const minutes = settings?.slotMinutes ?? 10;
+  // The teacher's own level decides the times (SD and SMP–SMA differ).
+  const sch = settings && teacher ? scheduleFor(settings, teacher.level) : null;
+  const starts = useMemo(() => (sch ? slotStarts(sch) : []), [sch?.dayStart, sch?.dayEnd, sch?.slotMinutes, sch?.eventDate]); // eslint-disable-line react-hooks/exhaustive-deps
+  const minutes = sch?.slotMinutes ?? 10;
   const current = currentSlotIndex(starts, minutes, now);
   const byStart = useMemo(() => new Map((bookings ?? []).map((b) => [b.slotStart, b])), [bookings]);
 
@@ -228,7 +232,7 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
       />
       <main className="mx-auto max-w-3xl px-4 pt-5 pb-16">
         <Card className="mb-5 flex items-center gap-3 p-4">
-          <Avatar text={initials(teacher?.name ?? '?')} size="lg" />
+          <Avatar text={avatarText(teacher)} size="lg" />
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-lg font-bold">{teacher?.name}</h1>
             <p className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -283,7 +287,7 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
                     ) : (
                       <>
                         <p className="font-bold text-foreground">
-                          {b.childName} <span className="font-semibold text-muted-foreground">· {b.childClass}</span>
+                          {b.childName} <span className="font-semibold text-muted-foreground">· {classLabel(b.childClass, t)}</span>
                         </p>
                         <p className="text-[13px] text-muted-foreground">{b.parentName}</p>
                         {b.phone ? (

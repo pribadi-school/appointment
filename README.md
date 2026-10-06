@@ -1,6 +1,6 @@
 # Parent–Teacher Consultation booking
 
-**SMP–SMA Pribadi Depok · report card day (grades 7–12)**
+**SD–SMP–SMA Pribadi Depok · report card day (grades 1–12)**
 
 Parents book a short consultation slot with a teacher from their phone. They
 don't need to install an app or create an account: they open a link or scan a
@@ -10,7 +10,9 @@ update live.
 
 | Page | Who | Link |
 |---|---|---|
-| Book a consultation | Parents (share this link / QR) | `/` |
+| Greeting + choose level | Parents (share this link / QR) | `/` |
+| Book · Primary School (SD) | Parents: class → time | `/sd` |
+| Book · Junior–Senior High (SMP–SMA) | Parents: teacher → time | `/smp-sma` |
 | My schedule | Parents | `/my` |
 | Live board | Venue TV, anyone | `/board` |
 | Teacher schedule | Teachers (name + teacher PIN) | `/teacher` |
@@ -18,6 +20,15 @@ update live.
 
 The app is in English by default, with an **EN | ID** switch in the header.
 The choice is remembered on each device.
+
+**Two levels.** The home page greets the parents and asks for the child's
+level:
+- **SMP–SMA** (grades 7–12): parents choose a teacher by subject, then a time
+  (10-minute slots from 08.30 by default).
+- **SD** (grades 1–6): there is no teacher list. Each SD class is one record,
+  named after its **two homeroom teachers**, who sit together. Parents choose
+  the class, then a time (15-minute slots from 08.00 to 12.00 by default).
+  SD times are set separately from SMP–SMA times in Event settings.
 
 ---
 
@@ -131,10 +142,13 @@ and an SPA fallback to `index.html`.
 
 ### 6. Before the day (from the Admin page, no code)
 
-1. **Event settings**: set the event date, the first/last slot times and the
-   slot length. Booking can be opened and closed here or on the dashboard.
+1. **Event settings**: set the event date, and the first/last slot times and
+   slot length for SMP–SMA and for SD. Booking can be opened and closed here
+   or on the dashboard.
 2. **Teachers → Rooms by subject**: replace the placeholder room names with
-   the real ones. You can also edit any single teacher's room.
+   the real ones. You can also edit any single teacher's room. SD classes
+   ("Classroom 1" … "Classroom 6" placeholders) are edited one by one: filter
+   by **SD**, then edit the class.
 3. **QR code**: print the poster and share the link in parent WhatsApp groups.
 
 ---
@@ -149,8 +163,14 @@ and an SPA fallback to `index.html`.
   moment, exactly one insert wins and the other gets `SLOT_TAKEN`. That parent
   sees *"Sorry, this time was just booked by another parent. Please choose
   another time."* and returns to the time picker with fresh slots.
-- Two more unique rules: a phone number can't be in **two rooms at the same
-  time**, and a child can have only **one slot per teacher**.
+- Two more rules: a phone number can't be in **two rooms at the same time**,
+  and a child can have only **one slot per teacher**. Because SD (15 min) and
+  SMP–SMA (10 min) slots have different lengths, "two rooms at once" means
+  *any overlap*, e.g. SD 08.30–08.45 blocks SMP 08.40. Bookings by the same
+  phone number are serialised with a lock, so even two simultaneous taps
+  can't both pass.
+- An SD class can only be booked for an SD child (class 1–6), and SMP–SMA
+  teachers only for classes 7A–12B.
 - These are proven by `tests/db/booking.test.ts` against a real PostgreSQL:
   two simultaneous bookings, and ten simultaneous bookings, each give exactly
   one success.

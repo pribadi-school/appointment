@@ -1,6 +1,6 @@
 -- =============================================================================
 -- Parent–Teacher Consultation booking — database schema
--- SMP–SMA Pribadi Depok
+-- SD–SMP–SMA Pribadi Depok
 --
 -- How to apply: paste this whole file into the Supabase SQL editor and run it,
 -- or run `npm run db:setup` (see README). It is safe to run more than once.
@@ -53,6 +53,31 @@ create table if not exists public.teachers (
   available       boolean not null default true, -- false = hidden from parents
   sort_order      int     not null default 0,
   created_at      timestamptz not null default now()
+);
+
+-- Primary school (SD). SD has its own day: one record per class (the class's
+-- two homeroom teachers, who sit together), 15-minute slots from 08.00.
+-- Added with ALTERs so existing databases pick it up when this file is re-run.
+alter table public.settings add column if not exists sd_day_start    time not null default time '08:00';
+alter table public.settings add column if not exists sd_day_end      time not null default time '12:00';
+alter table public.settings add column if not exists sd_slot_minutes int  not null default 15;
+alter table public.settings drop constraint if exists settings_sd_check;
+alter table public.settings add constraint settings_sd_check
+  check (sd_day_start < sd_day_end and sd_slot_minutes between 5 and 60);
+
+-- 'sd' = a primary-school class (homeroom_class '1'…'6'), 'smp_sma' = a
+-- junior/senior high teacher. A teacher's level decides its slot grid and
+-- which children's classes may book it.
+alter table public.teachers add column if not exists level text not null default 'smp_sma';
+alter table public.teachers drop constraint if exists teachers_level_check;
+alter table public.teachers add constraint teachers_level_check check (level in ('sd', 'smp_sma'));
+alter table public.teachers drop constraint if exists teachers_homeroom_class_check;
+alter table public.teachers add constraint teachers_homeroom_class_check
+  check (homeroom_class ~ '^((7|8|9|10|11|12)[A-Z]|[1-6])$');
+alter table public.teachers drop constraint if exists teachers_level_class_check;
+alter table public.teachers add constraint teachers_level_class_check check (
+  (level = 'sd' and homeroom_class ~ '^[1-6]$')
+  or (level = 'smp_sma' and (homeroom_class is null or homeroom_class !~ '^[1-6]$'))
 );
 
 -- What the public is allowed to know about a slot. Maintained automatically by
@@ -206,8 +231,16 @@ language sql volatile set search_path = '' as $$
   from generate_series(1, 5)
 $$;
 
--- Is this timestamp the start of a slot on the event day?
-create or replace function private.is_valid_slot(p_slot timestamptz) returns boolean
+-- Slot length in minutes for a level ('sd' or 'smp_sma').
+create or replace function private.level_minutes(p_level text) returns int
+language sql stable set search_path = '' as $$
+  select case when p_level = 'sd' then sd_slot_minutes else slot_minutes end from public.settings where id = 1
+$$;
+
+-- Is this timestamp the start of a slot on the event day, on this level's grid?
+-- (Replaces the older one-argument version, which only knew SMP–SMA.)
+drop function if exists private.is_valid_slot(timestamptz);
+create or replace function private.is_valid_slot(p_slot timestamptz, p_level text) returns boolean
 language plpgsql stable set search_path = '' as $$
 declare
   s        public.settings;
@@ -215,18 +248,55 @@ declare
   t_min    int;
   d_start  int;
   d_end    int;
+  len      int;
 begin
   select * into s from public.settings where id = 1;
   if local_ts::date <> s.event_date or extract(second from local_ts) <> 0 then
     return false;
   end if;
-  t_min   := extract(hour from local_ts)::int * 60 + extract(minute from local_ts)::int;
-  d_start := extract(hour from s.day_start)::int * 60 + extract(minute from s.day_start)::int;
-  d_end   := extract(hour from s.day_end)::int * 60 + extract(minute from s.day_end)::int;
+  t_min := extract(hour from local_ts)::int * 60 + extract(minute from local_ts)::int;
+  if p_level = 'sd' then
+    d_start := extract(hour from s.sd_day_start)::int * 60 + extract(minute from s.sd_day_start)::int;
+    d_end   := extract(hour from s.sd_day_end)::int * 60 + extract(minute from s.sd_day_end)::int;
+    len     := s.sd_slot_minutes;
+  else
+    d_start := extract(hour from s.day_start)::int * 60 + extract(minute from s.day_start)::int;
+    d_end   := extract(hour from s.day_end)::int * 60 + extract(minute from s.day_end)::int;
+    len     := s.slot_minutes;
+  end if;
   return t_min >= d_start
-     and t_min + s.slot_minutes <= d_end
-     and (t_min - d_start) % s.slot_minutes = 0;
+     and t_min + len <= d_end
+     and (t_min - d_start) % len = 0;
 end $$;
+
+-- Does a child's class belong to this level? SD: '1'…'6'; SMP–SMA: '7A'…'12Z'.
+create or replace function private.class_fits_level(p_class text, p_level text) returns boolean
+language sql immutable set search_path = '' as $$
+  select case when p_level = 'sd' then coalesce(p_class ~ '^[1-6]$', false)
+              else coalesce(p_class ~ '^(7|8|9|10|11|12)[A-Z]$', false) end
+$$;
+
+-- "One room at a time" for a parent. Slots of different levels have different
+-- lengths (SD 15 min, SMP–SMA 10 min), so equal start times are not enough:
+-- any overlap counts. Callers hold the per-phone advisory lock (see
+-- lock_parent) so two simultaneous bookings by one parent can't both pass.
+create or replace function private.parent_overlaps(
+  p_phone text, p_slot timestamptz, p_minutes int, p_exclude uuid default null
+) returns boolean
+language sql stable set search_path = '' as $$
+  select exists (
+    select 1 from private.bookings b join public.teachers t on t.id = b.teacher_id
+    where b.phone = p_phone and b.kind = 'booking' and b.id is distinct from p_exclude
+      and b.slot_start < p_slot + make_interval(mins => p_minutes)
+      and p_slot < b.slot_start + make_interval(mins => private.level_minutes(t.level))
+  )
+$$;
+
+-- Serialises bookings by the same phone number until the transaction ends.
+create or replace function private.lock_parent(p_phone text) returns void
+language sql set search_path = '' as $$
+  select pg_advisory_xact_lock(hashtextextended('parent:' || p_phone, 0))
+$$;
 
 -- Turn a unique-constraint name into a friendly error code for the app.
 create or replace function private.raise_for_constraint(p_constraint text) returns void
@@ -258,6 +328,7 @@ language plpgsql set search_path = '' as $$
 declare
   v_row        private.bookings;
   v_phone      text;
+  v_level      text;
   v_constraint text;
   v_tries      int := 0;
 begin
@@ -266,7 +337,7 @@ begin
   p_child_class := upper(btrim(coalesce(p_child_class, '')));
   if length(p_parent_name) not between 2 and 80
      or length(p_child_name) not between 2 and 80
-     or p_child_class !~ '^(7|8|9|10|11|12)[A-Z]$' then
+     or p_child_class !~ '^((7|8|9|10|11|12)[A-Z]|[1-6])$' then
     raise exception 'INVALID_INPUT';
   end if;
 
@@ -277,11 +348,22 @@ begin
     v_phone := private.normalize_phone(p_phone);
   end if;
 
-  if not exists (select 1 from public.teachers where id = p_teacher_id and available) then
+  select level into v_level from public.teachers where id = p_teacher_id and available;
+  if not found then
     raise exception 'TEACHER_UNAVAILABLE';
   end if;
-  if not private.is_valid_slot(p_slot_start) then
+  -- An SD child books SD classes only, an SMP–SMA child SMP–SMA teachers only.
+  if not private.class_fits_level(p_child_class, v_level) then
+    raise exception 'INVALID_INPUT';
+  end if;
+  if not private.is_valid_slot(p_slot_start, v_level) then
     raise exception 'INVALID_SLOT';
+  end if;
+  if v_phone is not null then
+    perform private.lock_parent(v_phone);
+    if private.parent_overlaps(v_phone, p_slot_start, private.level_minutes(v_level)) then
+      raise exception 'PARENT_BUSY';
+    end if;
   end if;
 
   loop
@@ -596,11 +678,31 @@ end $$;
 
 create or replace function public.admin_move_booking(p_token text, p_booking_id uuid, p_teacher_id uuid, p_slot_start timestamptz) returns void
 language plpgsql security definer set search_path = '' as $$
-declare v_constraint text;
+declare
+  v_constraint text;
+  v_level      text;
+  v_row        private.bookings;
 begin
   perform private.require_session(p_token, 'admin');
-  if not private.is_valid_slot(p_slot_start) then
+  select * into v_row from private.bookings where id = p_booking_id;
+  if not found then
+    raise exception 'NOT_FOUND';
+  end if;
+  select level into v_level from public.teachers where id = p_teacher_id;
+  if not found then
+    raise exception 'NOT_FOUND';
+  end if;
+  if not private.is_valid_slot(p_slot_start, v_level) then
     raise exception 'INVALID_SLOT';
+  end if;
+  if v_row.kind = 'booking' and not private.class_fits_level(v_row.child_class, v_level) then
+    raise exception 'INVALID_INPUT';
+  end if;
+  if v_row.kind = 'booking' and v_row.phone is not null then
+    perform private.lock_parent(v_row.phone);
+    if private.parent_overlaps(v_row.phone, p_slot_start, private.level_minutes(v_level), v_row.id) then
+      raise exception 'PARENT_BUSY';
+    end if;
   end if;
   begin
     update private.bookings set teacher_id = p_teacher_id, slot_start = p_slot_start
@@ -637,7 +739,7 @@ create or replace function public.admin_block_slot(p_token text, p_teacher_id uu
 language plpgsql security definer set search_path = '' as $$
 begin
   perform private.require_session(p_token, 'admin');
-  if not private.is_valid_slot(p_slot_start) then
+  if not private.is_valid_slot(p_slot_start, (select level from public.teachers where id = p_teacher_id)) then
     raise exception 'INVALID_SLOT';
   end if;
   begin
@@ -654,16 +756,18 @@ language plpgsql security definer set search_path = '' as $$
 declare
   v_id     uuid := nullif(p_teacher->>'id', '')::uuid;
   v_grades int[] := coalesce(array(select json_array_elements_text(coalesce(p_teacher->'grades', '[]'::json))::int), '{}');
+  v_level  text := coalesce(nullif(p_teacher->>'level', ''), 'smp_sma');
 begin
   perform private.require_session(p_token, 'admin');
-  if length(btrim(coalesce(p_teacher->>'name', ''))) < 2 then
+  if length(btrim(coalesce(p_teacher->>'name', ''))) < 2 or v_level not in ('sd', 'smp_sma') then
     raise exception 'INVALID_INPUT';
   end if;
-  if exists (select 1 from unnest(v_grades) g where g not between 7 and 12) then
+  if exists (select 1 from unnest(v_grades) g
+             where (v_level = 'sd' and g not between 1 and 6) or (v_level = 'smp_sma' and g not between 7 and 12)) then
     raise exception 'INVALID_INPUT';
   end if;
   if v_id is null then
-    insert into public.teachers (name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order)
+    insert into public.teachers (name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level)
     values (
       btrim(p_teacher->>'name'),
       nullif(btrim(coalesce(p_teacher->>'subject', '')), ''),
@@ -673,7 +777,8 @@ begin
       coalesce((p_teacher->>'isLeadership')::boolean, false),
       nullif(btrim(coalesce(p_teacher->>'room', '')), ''),
       coalesce((p_teacher->>'available')::boolean, true),
-      coalesce((p_teacher->>'sortOrder')::int, (select coalesce(max(sort_order), 0) + 1 from public.teachers))
+      coalesce((p_teacher->>'sortOrder')::int, (select coalesce(max(sort_order), 0) + 1 from public.teachers)),
+      v_level
     )
     returning id into v_id;
   else
@@ -686,10 +791,20 @@ begin
       is_leadership  = coalesce((p_teacher->>'isLeadership')::boolean, false),
       room           = nullif(btrim(coalesce(p_teacher->>'room', '')), ''),
       available      = coalesce((p_teacher->>'available')::boolean, true),
-      sort_order     = coalesce((p_teacher->>'sortOrder')::int, sort_order)
+      sort_order     = coalesce((p_teacher->>'sortOrder')::int, sort_order),
+      level          = v_level
     where id = v_id;
     if not found then
       raise exception 'NOT_FOUND';
+    end if;
+    -- Changing the level must not strand existing bookings off the new grid
+    -- or with a child of the other level.
+    if exists (
+      select 1 from private.bookings b where b.teacher_id = v_id
+        and (not private.is_valid_slot(b.slot_start, v_level)
+             or (b.kind = 'booking' and not private.class_fits_level(b.child_class, v_level)))
+    ) then
+      raise exception 'SCHEDULE_CONFLICT';
     end if;
   end if;
   return v_id;
@@ -717,16 +832,20 @@ begin
   delete from public.teachers where id = p_teacher_id;
 end $$;
 
--- Save event settings. If the date changes, existing bookings move with it.
--- Refuses (SCHEDULE_CONFLICT) if existing bookings would not fit new times.
+-- Save event settings (SMP–SMA times and the separate SD times). If the date
+-- changes, existing bookings move with it. Refuses (SCHEDULE_CONFLICT) if
+-- existing bookings would not fit the new times.
+drop function if exists public.admin_save_settings(text, date, time, time, int, boolean);
 create or replace function public.admin_save_settings(
-  p_token text, p_event_date date, p_day_start time, p_day_end time, p_slot_minutes int, p_booking_open boolean
+  p_token text, p_event_date date, p_day_start time, p_day_end time, p_slot_minutes int, p_booking_open boolean,
+  p_sd_day_start time, p_sd_day_end time, p_sd_slot_minutes int
 ) returns void
 language plpgsql security definer set search_path = '' as $$
 declare v_old public.settings;
 begin
   perform private.require_session(p_token, 'admin');
-  if p_day_start >= p_day_end or p_slot_minutes not between 5 and 60 then
+  if p_day_start >= p_day_end or p_slot_minutes not between 5 and 60
+     or p_sd_day_start >= p_sd_day_end or p_sd_slot_minutes not between 5 and 60 then
     raise exception 'INVALID_INPUT';
   end if;
   select * into v_old from public.settings where id = 1;
@@ -735,9 +854,14 @@ begin
   end if;
   update public.settings set
     event_date = p_event_date, day_start = p_day_start, day_end = p_day_end,
-    slot_minutes = p_slot_minutes, booking_open = p_booking_open, updated_at = now()
+    slot_minutes = p_slot_minutes, booking_open = p_booking_open,
+    sd_day_start = p_sd_day_start, sd_day_end = p_sd_day_end, sd_slot_minutes = p_sd_slot_minutes,
+    updated_at = now()
   where id = 1;
-  if exists (select 1 from private.bookings b where not private.is_valid_slot(b.slot_start)) then
+  if exists (
+    select 1 from private.bookings b join public.teachers t on t.id = b.teacher_id
+    where not private.is_valid_slot(b.slot_start, t.level)
+  ) then
     raise exception 'SCHEDULE_CONFLICT';  -- rolls back everything above
   end if;
 end $$;

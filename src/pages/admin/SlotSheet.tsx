@@ -7,8 +7,9 @@ import { api } from '../../lib/api';
 import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { formatPhone } from '../../lib/phone';
-import { fmtRange, fmtTime, slotStarts } from '../../lib/time';
-import { CLASSES } from '../../lib/types';
+import { classLabel } from '../../lib/teachers';
+import { fmtRange, fmtTime, scheduleFor, slotStarts } from '../../lib/time';
+import { classesFor } from '../../lib/types';
 import { useAdmin } from './AdminPage';
 
 export function SlotSheet({ teacherId, slotStart, onClose }: { teacherId: string; slotStart: number; onClose: () => void }) {
@@ -18,7 +19,13 @@ export function SlotSheet({ teacherId, slotStart, onClose }: { teacherId: string
   const teacher = teachers.find((x) => x.id === teacherId);
   const booking = bookings?.find((b) => b.teacherId === teacherId && b.slotStart === slotStart);
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ parentName: '', childName: '', childClass: '7A', phone: '' });
+  const [form, setForm] = useState({
+    parentName: '',
+    childName: '',
+    // SD: the class is the record's own class.
+    childClass: teacher?.level === 'sd' ? (teacher.homeroomClass ?? '1') : '7A',
+    phone: '',
+  });
   const [note, setNote] = useState(t('a_blockDefault'));
   const [moveTeacher, setMoveTeacher] = useState(teacherId);
   const [moveTime, setMoveTime] = useState(String(slotStart));
@@ -33,7 +40,9 @@ export function SlotSheet({ teacherId, slotStart, onClose }: { teacherId: string
   };
 
   const taken = new Set((bookings ?? []).filter((b) => b.teacherId === moveTeacher && b.id !== booking?.id).map((b) => String(b.slotStart)));
-  const title = t('a_slotTitle', { teacher: teacher.name, time: fmtRange(slotStart, settings.slotMinutes) });
+  const title = t('a_slotTitle', { teacher: teacher.name, time: fmtRange(slotStart, scheduleFor(settings, teacher.level).slotMinutes) });
+  // Bookings move only within the same level (the child's class decides it).
+  const moveTarget = teachers.find((x) => x.id === moveTeacher) ?? teacher;
 
   return (
     <BottomSheet open onClose={onClose} title={title}>
@@ -53,7 +62,12 @@ export function SlotSheet({ teacherId, slotStart, onClose }: { teacherId: string
             <Field label={t('a_col_parent')} value={form.parentName} onChange={(e) => setForm({ ...form, parentName: e.target.value })} required />
             <div className="grid grid-cols-[1fr_96px] gap-3">
               <Field label={t('f_childName')} value={form.childName} onChange={(e) => setForm({ ...form, childName: e.target.value })} required />
-              <SelectField label={t('a_col_class')} value={form.childClass} onChange={(v) => setForm({ ...form, childClass: v })} options={CLASSES.map((c) => ({ value: c, label: c }))} />
+              <SelectField
+                label={t('a_col_class')}
+                value={form.childClass}
+                onChange={(v) => setForm({ ...form, childClass: v })}
+                options={classesFor(teacher.level).map((c) => ({ value: c, label: classLabel(c, t) }))}
+              />
             </div>
             <Field
               label={`${t('f_phone')} (${t('optional')})`}
@@ -100,7 +114,7 @@ export function SlotSheet({ teacherId, slotStart, onClose }: { teacherId: string
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
             <dt className="text-muted-foreground">{t('a_col_child')}</dt>
             <dd className="font-bold text-foreground">
-              {booking.childName} · {booking.childClass}
+              {booking.childName} · {classLabel(booking.childClass, t)}
             </dd>
             <dt className="text-muted-foreground">{t('a_col_parent')}</dt>
             <dd className="text-foreground">{booking.parentName}</dd>
@@ -149,13 +163,16 @@ export function SlotSheet({ teacherId, slotStart, onClose }: { teacherId: string
               label={t('a_moveTeacher')}
               value={moveTeacher}
               onChange={setMoveTeacher}
-              options={[...teachers].sort((a, b) => a.name.localeCompare(b.name)).map((x) => ({ value: x.id, label: x.name }))}
+              options={teachers
+                .filter((x) => x.level === teacher.level)
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((x) => ({ value: x.id, label: x.name }))}
             />
             <SelectField
               label={t('a_moveTime')}
               value={moveTime}
               onChange={setMoveTime}
-              options={slotStarts(settings).map((s) => ({
+              options={slotStarts(scheduleFor(settings, moveTarget.level)).map((s) => ({
                 value: String(s),
                 label: `${fmtTime(s)}${taken.has(String(s)) ? ` — ${t('st_taken')}` : ''}`,
                 disabled: taken.has(String(s)),

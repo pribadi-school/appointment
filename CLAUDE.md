@@ -1,7 +1,9 @@
 # Parent–Teacher Consultation app — project notes
 
-Booking app for SMP–SMA Pribadi Depok's report card day: parents book a
+Booking app for SD–SMP–SMA Pribadi Depok's report card day: parents book a
 consultation slot with a teacher from their phone, no account needed.
+`/` greets them and asks the level: `/sd` (class → time) or `/smp-sma`
+(teacher → time).
 README.md is the user-facing guide (setup, deploy, how booking works) — read
 it first; this file is what's easy to get wrong while changing the code.
 
@@ -40,6 +42,19 @@ Hard rules:
 
 Any feature added to `supabaseApi.ts` must also exist in `demoApi.ts`, or demo
 mode (and the e2e tests, which run in demo mode) break.
+
+## Two levels (SD and SMP–SMA)
+
+Every teacher row has `level` ('sd' | 'smp_sma'). An SD row is a *class*
+(homeroom_class '1'…'6'), named after its two homeroom teachers. Each level has
+its own day and slot length (`settings.day_*`/`slot_minutes` vs `sd_*`), so:
+- Never use `settings.slotMinutes` / `slotStarts(settings)` for a specific
+  teacher — use `scheduleFor(settings, teacher.level)` / `minutesFor` from
+  `src/lib/time.ts`. Grids (board, dashboard) are one per level.
+- SQL: `is_valid_slot(slot, level)`; class must fit the level
+  (`class_fits_level`); "one room at a time" is an *overlap* check
+  (`parent_overlaps`) under a per-phone advisory lock, not equal start times.
+- Show SD classes with `classLabel()` ("Grade 3" / "Kelas 3"), never the raw "3".
 
 ## Database rules — don't weaken these
 

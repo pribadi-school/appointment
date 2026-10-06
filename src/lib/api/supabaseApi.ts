@@ -12,6 +12,7 @@ type Row = Record<string, unknown>;
 const toTeacher = (r: Row): Teacher => ({
   id: r.id as string,
   name: r.name as string,
+  level: r.level === 'sd' ? 'sd' : 'smp_sma',
   subject: (r.subject as string) ?? null,
   grades: (r.grades as number[]) ?? [],
   role: (r.role as string) ?? null,
@@ -28,6 +29,9 @@ const toSettings = (r: Row): Settings => ({
   dayEnd: hhmm(r.day_end as string),
   slotMinutes: r.slot_minutes as number,
   bookingOpen: Boolean(r.booking_open),
+  sdDayStart: hhmm(r.sd_day_start as string),
+  sdDayEnd: hhmm(r.sd_day_end as string),
+  sdSlotMinutes: r.sd_slot_minutes as number,
 });
 
 const toBooking = (r: Row): Booking => ({
@@ -170,6 +174,9 @@ export function createSupabaseApi(url: string, key: string): Api {
         p_day_end: s.dayEnd,
         p_slot_minutes: s.slotMinutes,
         p_booking_open: s.bookingOpen,
+        p_sd_day_start: s.sdDayStart,
+        p_sd_day_end: s.sdDayEnd,
+        p_sd_slot_minutes: s.sdSlotMinutes,
       }),
     async adminMaintenance(token, password, action) {
       // Returns {error} instead of raising, like the login functions.

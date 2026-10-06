@@ -8,8 +8,8 @@ import { api } from '../../lib/api';
 import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { formatPhone, normalizePhone } from '../../lib/phone';
-import { initials } from '../../lib/teachers';
-import { fmtDate, fmtRange } from '../../lib/time';
+import { avatarText, classLabel } from '../../lib/teachers';
+import { fmtDate, fmtRange, minutesFor } from '../../lib/time';
 import { errorCode, type ErrorCode } from '../../lib/types';
 import type { Flow } from '../BookPage';
 
@@ -58,7 +58,7 @@ export function ConfirmStep({ flow }: { flow: Flow }) {
       } else if (code === 'ALREADY_BOOKED_TEACHER' || code === 'TEACHER_UNAVAILABLE') {
         toast(errorText(code), 'error');
         flow.refreshBusy();
-        flow.go('teacher', { replace: true });
+        flow.go(flow.level === 'sd' ? 'details' : 'teacher', { replace: true });
       } else {
         setError(code);
       }
@@ -71,16 +71,18 @@ export function ConfirmStep({ flow }: { flow: Flow }) {
     <>
       <Card className="overflow-hidden">
         <div className="flex items-center gap-3 border-b border-border bg-linear-135 from-action-tint to-surface p-4">
-          <Avatar text={initials(teacher.name)} size="lg" />
+          <Avatar text={avatarText(teacher)} size="lg" />
           <div className="min-w-0">
-            <p className="text-xs font-medium text-muted-foreground">{t('c_teacher')}</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              {flow.level === 'sd' ? `${t('sd_teachers')} · ${classLabel(teacher.homeroomClass, t)}` : t('c_teacher')}
+            </p>
             <p className="text-lg leading-snug font-bold text-foreground">{teacher.name}</p>
             {teacher.subject && <p className="text-sm text-muted-foreground">{teacher.subject}</p>}
           </div>
         </div>
         <dl className="divide-y divide-border px-4">
           <Row icon={<Clock className="size-[18px]" />} label={t('c_time')}>
-            <span className="tabular-nums">{fmtRange(flow.slotStart, settings.slotMinutes)}</span>
+            <span className="tabular-nums">{fmtRange(flow.slotStart, minutesFor(settings, teacher.level))}</span>
           </Row>
           <Row icon={<CalendarDays className="size-[18px]" />} label={t('c_date')}>
             {fmtDate(settings.eventDate, lang)}
@@ -89,7 +91,7 @@ export function ConfirmStep({ flow }: { flow: Flow }) {
             {teacher.room ?? t('roomTbc')}
           </Row>
           <Row icon={<User className="size-[18px]" />} label={t('c_for')}>
-            <span className="text-accent">{d.childName}</span> · {d.childClass}
+            <span className="text-accent">{d.childName}</span> · {classLabel(d.childClass, t)}
             <span className="mt-0.5 block text-sm font-normal text-muted-foreground">
               {d.parentName} · {formatPhone(normalizePhone(d.phone))}
             </span>

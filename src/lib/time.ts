@@ -2,7 +2,7 @@
  * Time helpers. The whole app runs on Asia/Jakarta time (WIB, UTC+7, no
  * daylight saving), whatever timezone the visitor's phone is set to.
  */
-import type { Lang, Settings } from './types';
+import type { Lang, Level, Settings } from './types';
 
 export const TZ = 'Asia/Jakarta';
 const MINUTE = 60_000;
@@ -13,8 +13,23 @@ export const hhmm = (t: string) => t.slice(0, 5);
 /** Epoch ms for a wall-clock time on the event day in Jakarta. */
 export const jakartaTime = (date: string, time: string) => Date.parse(`${date}T${hhmm(time)}:00+07:00`);
 
-/** All slot start times (epoch ms) for the event day. */
-export function slotStarts(s: Settings): number[] {
+/** One level's day: SMP–SMA and SD have their own times and slot lengths. */
+export type Schedule = { eventDate: string; dayStart: string; dayEnd: string; slotMinutes: number };
+
+export function scheduleFor(s: Settings, level: Level): Schedule {
+  return level === 'sd'
+    ? { eventDate: s.eventDate, dayStart: s.sdDayStart, dayEnd: s.sdDayEnd, slotMinutes: s.sdSlotMinutes }
+    : { eventDate: s.eventDate, dayStart: s.dayStart, dayEnd: s.dayEnd, slotMinutes: s.slotMinutes };
+}
+
+/** Slot length for a level. */
+export const minutesFor = (s: Settings, level: Level) => scheduleFor(s, level).slotMinutes;
+
+/** Do [a, a+aMin) and [b, b+bMin) overlap? Used for "one room at a time". */
+export const overlaps = (a: number, aMin: number, b: number, bMin: number) => a < b + bMin * MINUTE && b < a + aMin * MINUTE;
+
+/** All slot start times (epoch ms) for one level's day. */
+export function slotStarts(s: Schedule): number[] {
   const start = jakartaTime(s.eventDate, s.dayStart);
   const end = jakartaTime(s.eventDate, s.dayEnd);
   const out: number[] = [];

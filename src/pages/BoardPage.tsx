@@ -9,8 +9,8 @@ import { Header } from '../components/Header';
 import { Card, PulseDot, Segmented, Skeleton, cx } from '../components/ui';
 import { useI18n } from '../lib/i18n';
 import { slotKey, useLive, useNow } from '../lib/live';
-import { currentSlotIndex, fmtDate, fmtRange, fmtTime, jakartaDate, slotStarts, slotState, type SlotState } from '../lib/time';
-import type { Teacher } from '../lib/types';
+import { currentSlotIndex, fmtDate, fmtRange, fmtTime, jakartaDate, scheduleFor, slotStarts, slotState, type SlotState } from '../lib/time';
+import type { Level, Teacher } from '../lib/types';
 
 type View = 'grid' | 'rooms';
 
@@ -31,15 +31,11 @@ function CellMark({ state }: { state: SlotState }) {
 
 export default function BoardPage() {
   const { t, lang } = useI18n();
-  const { settings, teachers, slots, flashing, loading } = useLive();
+  const { settings, teachers, loading } = useLive();
   const { now, simulated } = useNow(10_000);
   const [view, setView] = useState<View>(() => (window.innerWidth < 640 ? 'rooms' : 'grid'));
   const [query, setQuery] = useState('');
-  const scroller = useRef<HTMLDivElement>(null);
 
-  const starts = useMemo(() => (settings ? slotStarts(settings) : []), [settings]);
-  const minutes = settings?.slotMinutes ?? 10;
-  const current = currentSlotIndex(starts, minutes, now);
   const visible = useMemo(
     () =>
       teachers
@@ -49,35 +45,30 @@ export default function BoardPage() {
     [teachers, query],
   );
 
-  // Auto-scroll the grid so the current time column is in view.
-  useEffect(() => {
-    const el = scroller.current;
-    if (!el || view !== 'grid') return;
-    const idx = current >= 0 ? current : starts.findIndex((s) => s > now);
-    const col = el.querySelector<HTMLElement>(`[data-col="${idx}"]`);
-    const sticky = el.querySelector<HTMLElement>('thead th')?.offsetWidth ?? 0;
-    // Keep one earlier slot visible to the right of the sticky name column.
-    if (col) el.scrollTo({ left: Math.max(0, col.offsetLeft - sticky - col.offsetWidth), behavior: 'smooth' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current, view, starts.length]);
+  // One time grid per level: SD and SMP–SMA have different times and slot lengths.
+  const sections = useMemo(
+    () =>
+      settings
+        ? LEVELS.map((level) => {
+            const sch = scheduleFor(settings, level);
+            return { level, starts: slotStarts(sch), minutes: sch.slotMinutes, teachers: visible.filter((x) => x.level === level) };
+          })
+        : [],
+    [settings, visible],
+  );
 
-  const state = (teacherId: string, start: number) => slotState(slots.get(slotKey(teacherId, start)), start, minutes, now);
+  const statusLabel = useStatusLabels();
 
-  const statusLabel: Record<SlotState, string> = {
-    available: t('st_available'),
-    taken: t('st_taken'),
-    inProgress: t('st_inProgress'),
-    done: t('st_done'),
-    passed: t('st_passed'),
-  };
-
-  // Header line: Now / Starts at / Ended / event day
+  // Header line: Now / Starts at / Ended / event day (across both levels)
+  const spans = sections.flatMap((x) => x.starts.map((s) => [s, s + x.minutes * 60_000]));
+  const first = Math.min(...spans.map(([s]) => s));
+  const last = Math.max(...spans.map(([, e]) => e));
   let nowText: string;
   if (!settings) nowText = '';
   else if (jakartaDate(now) !== settings.eventDate) nowText = t('b_eventDay', { date: fmtDate(settings.eventDate, lang) });
-  else if (current >= 0) nowText = t('b_now', { range: fmtRange(starts[current], minutes) });
-  else if (starts.length && now < starts[0]) nowText = t('b_startsAt', { time: fmtTime(starts[0]) });
-  else nowText = t('b_ended');
+  else if (spans.length && now < first) nowText = t('b_startsAt', { time: fmtTime(first) });
+  else if (!spans.length || now >= last) nowText = t('b_ended');
+  else nowText = t('b_now', { range: fmtTime(now) });
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -136,79 +127,132 @@ export default function BoardPage() {
         {loading || !settings ? (
           <Skeleton className="h-[60vh] rounded-lg" />
         ) : view === 'grid' ? (
-          <Card className="overflow-hidden">
-            <div ref={scroller} className="max-h-[calc(100dvh-230px)] overflow-auto overscroll-contain">
-              <table className="border-separate border-spacing-0 text-sm">
-                <caption className="sr-only">{t('b_title')}</caption>
-                <thead>
-                  <tr>
-                    <th scope="col" className="sticky top-0 left-0 z-20 min-w-36 border-b border-border bg-surface px-3 py-2 text-left text-xs font-bold text-muted-foreground sm:min-w-56">
-                      {t('b_teacher')}
-                    </th>
-                    {starts.map((s, i) => (
-                      <th
-                        key={s}
-                        scope="col"
-                        data-col={i}
-                        className={cx(
-                          'sticky top-0 z-10 border-b border-border px-0.5 py-2 text-center text-xs font-bold tabular-nums',
-                          i === current ? 'bg-action text-on-primary' : 'bg-surface text-muted-foreground',
-                        )}
-                      >
-                        {fmtTime(s)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {visible.map((teacher) => (
-                    <tr key={teacher.id}>
-                      <th scope="row" className="sticky left-0 z-10 max-w-36 border-b border-border bg-surface px-3 py-1.5 text-left font-normal sm:max-w-56">
-                        <span className="block truncate text-[13px] font-bold text-foreground xl:text-sm">{teacher.name}</span>
-                        <span className="block truncate text-[11px] text-muted-foreground">{teacher.room ?? '—'}</span>
-                      </th>
-                      {starts.map((s, i) => {
-                        const st = state(teacher.id, s);
-                        return (
-                          <td key={s} className={cx('border-b border-border p-0.5', i === current && 'bg-action-tint')}>
-                            <span
-                              role="img"
-                              aria-label={`${teacher.name}, ${fmtTime(s)}: ${statusLabel[st]}`}
-                              title={`${fmtTime(s)} · ${statusLabel[st]}`}
-                              className={cx(
-                                'flex h-9 w-12 items-center justify-center rounded-[8px] transition-colors duration-300 xl:h-10 xl:w-14',
-                                CELL[st],
-                                flashing.has(slotKey(teacher.id, s)) && 'animate-slot-flash',
-                              )}
-                            >
-                              <CellMark state={st} />
-                            </span>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+          <div className="space-y-6">
+            {sections
+              .filter((x) => x.teachers.length)
+              .map((x) => (
+                <GridSection key={x.level} title={t(x.level === 'sd' ? 'lvl_sd' : 'lvl_smp')} teachers={x.teachers} starts={x.starts} minutes={x.minutes} now={now} />
+              ))}
+          </div>
         ) : (
-          <RoomsView teachers={visible} starts={starts} minutes={minutes} now={now} />
+          <RoomsView teachers={visible} now={now} />
         )}
       </main>
     </div>
   );
 }
 
-function RoomsView({ teachers, starts, minutes, now }: { teachers: Teacher[]; starts: number[]; minutes: number; now: number }) {
+const LEVELS: Level[] = ['sd', 'smp_sma'];
+
+function useStatusLabels(): Record<SlotState, string> {
+  const { t } = useI18n();
+  return {
+    available: t('st_available'),
+    taken: t('st_taken'),
+    inProgress: t('st_inProgress'),
+    done: t('st_done'),
+    passed: t('st_passed'),
+  };
+}
+
+/** One level's grid: teachers down, that level's slot times across. */
+function GridSection({ title, teachers, starts, minutes, now }: { title: string; teachers: Teacher[]; starts: number[]; minutes: number; now: number }) {
   const { t } = useI18n();
   const { slots, flashing } = useLive();
+  const statusLabel = useStatusLabels();
+  const scroller = useRef<HTMLDivElement>(null);
+  const current = currentSlotIndex(starts, minutes, now);
+
+  // Auto-scroll the grid so the current time column is in view.
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const idx = current >= 0 ? current : starts.findIndex((s) => s > now);
+    const col = el.querySelector<HTMLElement>(`[data-col="${idx}"]`);
+    const sticky = el.querySelector<HTMLElement>('thead th')?.offsetWidth ?? 0;
+    // Keep one earlier slot visible to the right of the sticky name column.
+    if (col) el.scrollTo({ left: Math.max(0, col.offsetLeft - sticky - col.offsetWidth), behavior: 'smooth' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, starts.length]);
+
+  const state = (teacherId: string, start: number) => slotState(slots.get(slotKey(teacherId, start)), start, minutes, now);
+
+  return (
+    <section aria-label={title}>
+      <h2 className="mb-2 flex flex-wrap items-baseline gap-x-2 text-base font-bold text-foreground">
+        {title}
+        <span className="text-xs font-semibold text-muted-foreground tabular-nums">
+          {current >= 0 ? t('b_now', { range: fmtRange(starts[current], minutes) }) : t('minutes', { n: minutes })}
+        </span>
+      </h2>
+      <Card className="overflow-hidden">
+        <div ref={scroller} className="max-h-[calc(100dvh-230px)] overflow-auto overscroll-contain">
+          <table className="border-separate border-spacing-0 text-sm">
+            <caption className="sr-only">{`${t('b_title')} · ${title}`}</caption>
+            <thead>
+              <tr>
+                <th scope="col" className="sticky top-0 left-0 z-20 min-w-36 border-b border-border bg-surface px-3 py-2 text-left text-xs font-bold text-muted-foreground sm:min-w-56">
+                  {t('b_teacher')}
+                </th>
+                {starts.map((s, i) => (
+                  <th
+                    key={s}
+                    scope="col"
+                    data-col={i}
+                    className={cx(
+                      'sticky top-0 z-10 border-b border-border px-0.5 py-2 text-center text-xs font-bold tabular-nums',
+                      i === current ? 'bg-action text-on-primary' : 'bg-surface text-muted-foreground',
+                    )}
+                  >
+                    {fmtTime(s)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {teachers.map((teacher) => (
+                <tr key={teacher.id}>
+                  <th scope="row" className="sticky left-0 z-10 max-w-36 border-b border-border bg-surface px-3 py-1.5 text-left font-normal sm:max-w-56">
+                    <span className="block truncate text-[13px] font-bold text-foreground xl:text-sm">{teacher.name}</span>
+                    <span className="block truncate text-[11px] text-muted-foreground">{teacher.room ?? '—'}</span>
+                  </th>
+                  {starts.map((s, i) => {
+                    const st = state(teacher.id, s);
+                    return (
+                      <td key={s} className={cx('border-b border-border p-0.5', i === current && 'bg-action-tint')}>
+                        <span
+                          role="img"
+                          aria-label={`${teacher.name}, ${fmtTime(s)}: ${statusLabel[st]}`}
+                          title={`${fmtTime(s)} · ${statusLabel[st]}`}
+                          className={cx(
+                            'flex h-9 w-12 items-center justify-center rounded-[8px] transition-colors duration-300 xl:h-10 xl:w-14',
+                            CELL[st],
+                            flashing.has(slotKey(teacher.id, s)) && 'animate-slot-flash',
+                          )}
+                        >
+                          <CellMark state={st} />
+                        </span>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </section>
+  );
+}
+
+function RoomsView({ teachers, now }: { teachers: Teacher[]; now: number }) {
+  const { t } = useI18n();
+  const { slots, flashing, settings } = useLive();
   const rooms = useMemo(() => {
     const m = new Map<string, Teacher[]>();
     for (const x of teachers) m.set(x.room ?? '', [...(m.get(x.room ?? '') ?? []), x]);
     return [...m.entries()].sort(([a], [b]) => (a ? (b ? a.localeCompare(b) : -1) : 1));
   }, [teachers]);
-  const current = currentSlotIndex(starts, minutes, now);
 
   return (
     <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -220,6 +264,10 @@ function RoomsView({ teachers, starts, minutes, now }: { teachers: Teacher[]; st
           </h2>
           <ul className="divide-y divide-border">
             {list.map((teacher) => {
+              // Each teacher on their own level's grid.
+              const sch = scheduleFor(settings!, teacher.level);
+              const starts = slotStarts(sch);
+              const current = currentSlotIndex(starts, sch.slotMinutes, now);
               const nowEntry = current >= 0 ? slots.get(slotKey(teacher.id, starts[current])) : undefined;
               const nextStart = starts.find((s) => s > now && slots.get(slotKey(teacher.id, s))?.status === 'taken');
               const nextEntry = nextStart ? slots.get(slotKey(teacher.id, nextStart)) : undefined;

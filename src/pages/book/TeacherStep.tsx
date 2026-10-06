@@ -1,6 +1,6 @@
 /** Step 2: homeroom teacher first, then teachers of the child's grade by subject, then leadership. */
 import { useMemo, useState } from 'react';
-import { BadgeCheck, ChevronRight, MapPin, Search, X } from 'lucide-react';
+import { ChevronRight, MapPin, Search, X } from 'lucide-react';
 import { Avatar, Skeleton, StatusPill, cx } from '../../components/ui';
 import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
@@ -106,8 +106,7 @@ export function TeacherStep({ flow }: { flow: Flow }) {
                           {teacher.role && (
                             <span className="mt-1.5 flex flex-wrap gap-1">
                               {teacher.role.split(',').map((r) => r.trim()).filter(Boolean).map((r) => (
-                                <span key={r} className="inline-flex items-center gap-1 rounded-full bg-accent-tint px-2 py-0.5 text-[11px] font-semibold text-foreground">
-                                  <BadgeCheck className="size-3 shrink-0 text-accent" aria-hidden />
+                                <span key={r} className="inline-flex items-center rounded-full bg-accent-tint px-2 py-0.5 text-[11px] font-semibold text-foreground">
                                   {r}
                                 </span>
                               ))}

@@ -119,8 +119,9 @@ can't build the app, so the built files live on a separate GitHub branch,
 **Each release**
 
 1. Commit and push your changes to `main`.
-2. Run `npm run deploy`. It checks `.env` has the real Supabase keys, builds,
-   and pushes the build to the `deploy` branch.
+2. GitHub builds it by itself (Actions → **Build for cPanel**, about a
+   minute) and pushes the build to the `deploy` branch. To build by hand
+   instead, run `npm run deploy` (it checks `.env` has the real Supabase keys).
 3. cPanel → **Terminal**:
 
    ```bash

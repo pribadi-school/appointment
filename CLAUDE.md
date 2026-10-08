@@ -105,8 +105,11 @@ is a clone of `deploy` (outside `public_html`, so `.git` is never served); the
 branch's `deploy.sh` copies the files into `public_html/report`.
 
 To release a change:
-1. Commit and push to `main` (`npm run deploy` refuses a dirty tree).
-2. `npm run deploy` (`scripts/publish-deploy.ts`): checks `.env` has the real
+1. Commit and push to `main`.
+2. `.github/workflows/deploy.yml` then runs `npm run deploy` on GitHub by
+   itself (the public Supabase URL/anon key are in that file; never add the
+   DB URL, admin password or teacher PIN there). By hand, `npm run deploy`
+   (`scripts/publish-deploy.ts`) refuses a dirty tree and checks `.env` has the real
    `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` — Vite bakes them into the
    files, and built with them empty the live site silently runs in demo mode —
    then builds and pushes `dist/` + `.cpanel.yml` to `deploy`.

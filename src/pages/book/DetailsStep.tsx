@@ -9,7 +9,7 @@ import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { normalizePhone } from '../../lib/phone';
 import { classLabel } from '../../lib/teachers';
-import { fmtDate, scheduleFor } from '../../lib/time';
+import { fmtDate, scheduleFor, teacherSchedule } from '../../lib/time';
 import { classesFor, type ParentDetails } from '../../lib/types';
 import type { Flow } from '../BookPage';
 
@@ -18,8 +18,10 @@ type Errors = Partial<Record<keyof ParentDetails, string>>;
 export function DetailsStep({ flow }: { flow: Flow }) {
   const { t, lang } = useI18n();
   const { settings, loading, teachers } = useLive();
-  const sch = settings ? scheduleFor(settings, flow.level) : null;
   const [form, setForm] = useState<ParentDetails>(flow.details);
+  // SD: once a class is picked, show that class's own times (they can differ per grade).
+  const sdClass = flow.level === 'sd' ? teachers.find((x) => x.level === 'sd' && x.homeroomClass === form.childClass) : undefined;
+  const sch = settings ? (sdClass ? teacherSchedule(settings, sdClass) : scheduleFor(settings, flow.level)) : null;
   const [errors, setErrors] = useState<Errors>({});
   const [sheet, setSheet] = useState(false);
   const refs = {

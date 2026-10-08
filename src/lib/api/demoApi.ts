@@ -11,7 +11,7 @@
  */
 import { parseSeed } from '../../data/seedTeachers';
 import { childKey, firstNameKey, normalizePhone } from '../phone';
-import { jakartaTime, minutesFor, overlaps, slotStarts, teacherSchedule } from '../time';
+import { jakartaTime, overlaps, slotStarts, teacherMinutes, teacherSchedule } from '../time';
 import { AppError, classesFor, levelOfClass, type Booking, type Settings, type Teacher } from '../types';
 import { KEYS, load, save } from '../storage';
 import type { Api, BookInput, LiveTopic } from './api';
@@ -37,7 +37,7 @@ const isTest = typeof navigator !== 'undefined' && navigator.webdriver;
 const DEMO_NAMES = ['Aisyah', 'Bima', 'Citra', 'Dimas', 'Elena', 'Farhan', 'Gita', 'Hafiz', 'Intan', 'Jovan', 'Kirana', 'Raka', 'Salma', 'Yusuf'];
 
 function freshDb(): Db {
-  const teachers: Teacher[] = parseSeed().map((t) => ({ ...t, id: uid() }));
+  const teachers: Teacher[] = parseSeed().map((t) => ({ ...t, dayStart: null, slotMinutes: null, id: uid() }));
   const settings: Settings = {
     eventDate: '2026-10-17', dayStart: '08:30', dayEnd: '12:30', slotMinutes: 10, bookingOpen: true,
     sdDayStart: '08:00', sdDayEnd: '12:00', sdSlotMinutes: 15,
@@ -103,13 +103,13 @@ function isValidSlot(db: Db, slot: number, teacher: Teacher | undefined) {
   return Boolean(teacher) && slotStarts(teacherSchedule(db.settings, teacher!)).includes(slot);
 }
 
-/** Same as private.parent_overlaps(): any overlap counts (SD and SMP–SMA slot lengths differ). */
+/** Same as private.parent_overlaps(): any overlap counts (slot lengths differ by level and class). */
 function parentBusy(db: Db, phone: string, slot: number, minutes: number, excludeId?: string) {
-  const level = new Map(db.teachers.map((t) => [t.id, t.level]));
+  const byId = new Map(db.teachers.map((t) => [t.id, t]));
   return db.bookings.some(
     (b) =>
       b.kind === 'booking' && b.phone === phone && b.id !== excludeId &&
-      overlaps(b.slotStart, minutesFor(db.settings, level.get(b.teacherId) ?? 'smp_sma'), slot, minutes),
+      overlaps(b.slotStart, teacherMinutes(db.settings, byId.get(b.teacherId)), slot, minutes),
   );
 }
 
@@ -135,7 +135,7 @@ function insertBooking(db: Db, i: BookInput, by: 'parent' | 'admin'): Booking {
   if (!teacher) throw new AppError('TEACHER_UNAVAILABLE');
   if (levelOfClass(i.childClass) !== teacher.level) throw new AppError('INVALID_INPUT');
   if (!isValidSlot(db, i.slotStart, teacher)) throw new AppError('INVALID_SLOT');
-  if (phone && parentBusy(db, phone, i.slotStart, minutesFor(db.settings, teacher.level))) throw new AppError('PARENT_BUSY');
+  if (phone && parentBusy(db, phone, i.slotStart, teacherMinutes(db.settings, teacher))) throw new AppError('PARENT_BUSY');
   if (db.bookings.some((b) => b.teacherId === i.teacherId && b.slotStart === i.slotStart)) throw new AppError('SLOT_TAKEN');
   if (phone) {
     const mine = db.bookings.filter((b) => b.kind === 'booking' && b.phone === phone);
@@ -319,7 +319,7 @@ export function createDemoApi(): Api {
       if (!b || !teacher) throw new AppError('NOT_FOUND');
       if (!isValidSlot(db, slotStart, teacher)) throw new AppError('INVALID_SLOT');
       if (b.kind === 'booking' && levelOfClass(b.childClass ?? '') !== teacher.level) throw new AppError('INVALID_INPUT');
-      if (b.kind === 'booking' && b.phone && parentBusy(db, b.phone, slotStart, minutesFor(db.settings, teacher.level), b.id))
+      if (b.kind === 'booking' && b.phone && parentBusy(db, b.phone, slotStart, teacherMinutes(db.settings, teacher), b.id))
         throw new AppError('PARENT_BUSY');
       if (db.bookings.some((x) => x.id !== id && x.teacherId === teacherId && x.slotStart === slotStart)) throw new AppError('SLOT_TAKEN');
       b.teacherId = teacherId;
@@ -364,6 +364,8 @@ export function createDemoApi(): Api {
         t.name.trim().length < 2 ||
         grades.some((g) => (level === 'sd' ? g < 1 || g > 6 : g < 7 || g > 12)) ||
         (t.slotCount != null && (!Number.isInteger(t.slotCount) || t.slotCount < 1 || t.slotCount > 96)) ||
+        (t.slotMinutes != null && (!Number.isInteger(t.slotMinutes) || t.slotMinutes < 5 || t.slotMinutes > 60)) ||
+        (t.dayStart != null && !/^\d{2}:\d{2}$/.test(t.dayStart)) ||
         (level === 'sd' ? !homeroom || levelOfClass(homeroom) !== 'sd' : homeroom !== null && levelOfClass(homeroom) !== 'smp_sma')
       ) {
         throw new AppError('INVALID_INPUT');
@@ -372,6 +374,8 @@ export function createDemoApi(): Api {
         name: t.name.trim(),
         level,
         slotCount: t.slotCount ?? null,
+        dayStart: t.dayStart || null,
+        slotMinutes: t.slotMinutes ?? null,
         subject: t.subject?.trim() || null,
         grades: t.grades ?? [],
         role: t.role?.trim() || null,

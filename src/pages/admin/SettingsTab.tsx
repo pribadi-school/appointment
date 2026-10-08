@@ -1,5 +1,5 @@
 /** Event date, slot times/length per level (SMP–SMA and SD), the booking open/close switch, the teacher PIN, and maintenance. */
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { KeyRound, LogOut, RotateCcw, Trash2, Users } from 'lucide-react';
 import { BottomSheet } from '../../components/BottomSheet';
 import { useToast } from '../../components/Toast';
@@ -10,7 +10,9 @@ import { resetDemo } from '../../lib/api/demoApi';
 import { useI18n, type MessageKey } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { fmtDate, fmtRange, scheduleFor, slotStarts } from '../../lib/time';
-import { errorCode, type ErrorCode, type Level, type Settings } from '../../lib/types';
+import { classLabel } from '../../lib/teachers';
+import { errorCode, type ErrorCode, type Level, type Settings, type Teacher } from '../../lib/types';
+import { OwnScheduleFields, OwnSchedulePreview, type Own } from './OwnSchedule';
 import { useAdmin } from './AdminPage';
 
 export function SettingsTab() {
@@ -49,6 +51,8 @@ export function SettingsTab() {
           {t('save')}
         </Button>
       </Card>
+
+      <GradeTimesCard />
 
       <TeacherPinCard />
 
@@ -95,6 +99,63 @@ function LevelTimes({ level, f, setF }: { level: Level; f: Settings; setF: (s: S
         </p>
       )}
     </fieldset>
+  );
+}
+
+/** Own first slot, slot length and number of slots for each SD grade (empty = the SD times). */
+function GradeTimesCard() {
+  const { t } = useI18n();
+  const { settings, teachers } = useLive();
+  const { token, run } = useAdmin();
+  const classes = useMemo(
+    () => teachers.filter((x) => x.level === 'sd').sort((a, b) => (a.homeroomClass ?? '').localeCompare(b.homeroomClass ?? '')),
+    [teachers],
+  );
+  const pick = (x: Teacher): Own => ({ level: x.level, dayStart: x.dayStart, slotMinutes: x.slotMinutes, slotCount: x.slotCount });
+  const [drafts, setDrafts] = useState<Record<string, Own>>({});
+  const [busy, setBusy] = useState(false);
+  useEffect(() => setDrafts(Object.fromEntries(classes.map((x) => [x.id, pick(x)]))), [classes]);
+  if (!settings || !classes.length) return null;
+
+  const changed = classes.filter((x) => drafts[x.id] && JSON.stringify(drafts[x.id]) !== JSON.stringify(pick(x)));
+
+  return (
+    <Card className="p-5">
+      <h2 className="text-lg font-bold text-foreground">{t('a_g_title')}</h2>
+      <p className="mt-1 mb-4 text-sm text-muted-foreground">{t('a_g_intro')}</p>
+      <ul className="divide-y divide-border-strong">
+        {classes.map((x) => {
+          const own = drafts[x.id] ?? pick(x);
+          return (
+            <li key={x.id} className="py-4 first:pt-0">
+              <p className="mb-2 font-semibold text-foreground">
+                {classLabel(x.homeroomClass, t)}
+                <span className="ml-2 text-sm font-normal text-muted-foreground">{x.name}</span>
+              </p>
+              <OwnScheduleFields settings={settings} value={own} onChange={(v) => setDrafts((d) => ({ ...d, [x.id]: v }))} />
+              <div className="mt-2">
+                <OwnSchedulePreview settings={settings} value={own} />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <Button
+        block
+        loading={busy}
+        disabled={!changed.length}
+        onClick={async () => {
+          setBusy(true);
+          // One save per changed grade; the database refuses times that would strand a booking.
+          await run(async () => {
+            for (const x of changed) await api.adminSaveTeacher(token, { ...x, ...drafts[x.id] });
+          }, t('saved'));
+          setBusy(false);
+        }}
+      >
+        {t('a_g_save')}
+      </Button>
+    </Card>
   );
 }
 

@@ -16,7 +16,7 @@ import { useLive, useNow } from '../lib/live';
 import { normalizePhone } from '../lib/phone';
 import { KEYS, load, save } from '../lib/storage';
 import { avatarText, classLabel } from '../lib/teachers';
-import { fmtDate, fmtRange, minutesFor, slotState } from '../lib/time';
+import { fmtDate, fmtRange, slotState, teacherMinutes } from '../lib/time';
 import { errorCode, type Booking, type ErrorCode, type ParentDetails } from '../lib/types';
 import { scheduleMessage, waLink } from '../lib/whatsapp';
 
@@ -98,8 +98,8 @@ export function MySchedulePage() {
   const byId = new Map(teachers.map((x) => [x.id, x]));
   const showLookup = !query || (list && list.length === 0 && !loading);
   const teacherName = (b: Booking) => byId.get(b.teacherId)?.name ?? '-';
-  // SD and SMP–SMA slots have different lengths.
-  const minutesOf = (b: Booking) => (settings ? minutesFor(settings, byId.get(b.teacherId)?.level ?? 'smp_sma') : 10);
+  // Slot lengths differ by level and per SD class.
+  const minutesOf = (b: Booking) => (settings ? teacherMinutes(settings, byId.get(b.teacherId)) : 10);
 
   return (
     <div className="min-h-dvh">

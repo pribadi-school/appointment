@@ -8,7 +8,7 @@ import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { formatPhone } from '../../lib/phone';
 import { classLabel } from '../../lib/teachers';
-import { fmtRange, fmtTime, scheduleFor, slotStarts, teacherSchedule } from '../../lib/time';
+import { fmtRange, fmtTime, slotStarts, teacherSchedule } from '../../lib/time';
 import { classesFor } from '../../lib/types';
 import { useAdmin } from './AdminPage';
 
@@ -40,7 +40,7 @@ export function SlotSheet({ teacherId, slotStart, onClose }: { teacherId: string
   };
 
   const taken = new Set((bookings ?? []).filter((b) => b.teacherId === moveTeacher && b.id !== booking?.id).map((b) => String(b.slotStart)));
-  const title = t('a_slotTitle', { teacher: teacher.name, time: fmtRange(slotStart, scheduleFor(settings, teacher.level).slotMinutes) });
+  const title = t('a_slotTitle', { teacher: teacher.name, time: fmtRange(slotStart, teacherSchedule(settings, teacher).slotMinutes) });
   // Bookings move only within the same level (the child's class decides it).
   const moveTarget = teachers.find((x) => x.id === moveTeacher) ?? teacher;
 

@@ -22,23 +22,50 @@ export function scheduleFor(s: Settings, level: Level): Schedule {
     : { eventDate: s.eventDate, dayStart: s.dayStart, dayEnd: s.dayEnd, slotMinutes: s.slotMinutes };
 }
 
-/** A teacher's own day: their level's, but `slotCount` slots long when set. */
-export function teacherSchedule(s: Settings, t: { level: Level; slotCount: number | null }): Schedule {
-  const sch = scheduleFor(s, t.level);
-  if (!t.slotCount) return sch;
-  const [h, m] = sch.dayStart.split(':').map(Number);
-  const end = h * 60 + m + t.slotCount * sch.slotMinutes;
-  return { ...sch, dayEnd: `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}` };
+/** What a teacher can override about their level's day (each null = the level's). */
+export type OwnSchedule = { level: Level; slotCount: number | null; dayStart?: string | null; slotMinutes?: number | null };
+
+const toMin = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+};
+const toHhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+
+/**
+ * A teacher's (or SD class's) own day: their level's, with their own first slot,
+ * slot length and number of slots where set. Without a slot count the day ends
+ * at the level's end.
+ */
+export function teacherSchedule(s: Settings, t: OwnSchedule): Schedule {
+  const lvl = scheduleFor(s, t.level);
+  const dayStart = t.dayStart ?? lvl.dayStart;
+  const slotMinutes = t.slotMinutes ?? lvl.slotMinutes;
+  const dayEnd = t.slotCount ? toHhmm(toMin(dayStart) + t.slotCount * slotMinutes) : lvl.dayEnd;
+  return { eventDate: s.eventDate, dayStart, dayEnd, slotMinutes };
 }
 
-/** Slot starts for a whole level's grid: the level's day, stretched to the longest teacher in it. */
-export function levelGridStarts(s: Settings, level: Level, teachers: { level: Level; slotCount: number | null }[]): number[] {
-  let sch = scheduleFor(s, level);
-  for (const t of teachers) if (t.level === level) {
-    const own = teacherSchedule(s, t);
-    if (own.dayEnd > sch.dayEnd) sch = own;
-  }
-  return slotStarts(sch);
+/** A teacher's slot length. */
+export const teacherMinutes = (s: Settings, t: OwnSchedule | undefined) => (t ? teacherSchedule(s, t).slotMinutes : s.slotMinutes);
+
+/**
+ * A whole level's grid when classes/teachers can differ: every slot start any of
+ * them has (sorted), when the grid's day ends, and the slot lengths in use.
+ */
+export function levelGrid(s: Settings, level: Level, teachers: OwnSchedule[]) {
+  const list = teachers.filter((t) => t.level === level);
+  const schedules = (list.length ? list : [{ level, slotCount: null }]).map((t) => teacherSchedule(s, t));
+  const starts = [...new Set(schedules.flatMap(slotStarts))].sort((a, b) => a - b);
+  const end = Math.max(...schedules.map((x) => jakartaTime(x.eventDate, x.dayEnd)));
+  const lengths = [...new Set(schedules.map((x) => x.slotMinutes))].sort((a, b) => a - b);
+  return { starts, end, lengths };
+}
+
+/** Column of a mixed grid that holds `now`: the last start at or before now, while the day runs. */
+export function gridCurrentIndex(starts: number[], now: number, end: number) {
+  if (!starts.length || now < starts[0] || now >= end) return -1;
+  let i = starts.length - 1;
+  while (i > 0 && starts[i] > now) i--;
+  return i;
 }
 
 /** Slot length for a level. */

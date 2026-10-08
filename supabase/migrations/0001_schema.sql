@@ -79,6 +79,13 @@ alter table public.teachers add constraint teachers_homeroom_class_check
 alter table public.teachers add column if not exists slot_count int;
 alter table public.teachers drop constraint if exists teachers_slot_count_check;
 alter table public.teachers add constraint teachers_slot_count_check check (slot_count between 1 and 96);
+-- Optional own first-slot time and slot length (e.g. Grade 1 at 10 minutes,
+-- Grade 2 at 15). Null = the level's. Set per grade in Event settings, or per
+-- teacher in Teachers.
+alter table public.teachers add column if not exists day_start time;
+alter table public.teachers add column if not exists slot_minutes int;
+alter table public.teachers drop constraint if exists teachers_slot_minutes_check;
+alter table public.teachers add constraint teachers_slot_minutes_check check (slot_minutes between 5 and 60);
 alter table public.teachers drop constraint if exists teachers_level_class_check;
 alter table public.teachers add constraint teachers_level_class_check check (
   (level = 'sd' and homeroom_class ~ '^[1-6]$')
@@ -242,12 +249,14 @@ language sql stable set search_path = '' as $$
   select case when p_level = 'sd' then sd_slot_minutes else slot_minutes end from public.settings where id = 1
 $$;
 
--- Is this timestamp the start of a slot on the event day, on this level's grid?
--- p_count = the teacher's own number of slots from the level's start (null =
--- the level's start–end window).
--- (Replaces the older one-argument version, which only knew SMP–SMA.)
+-- Is this timestamp the start of a slot on the event day?
+-- The level gives the day (start, end, slot length); a teacher can override
+-- the first slot (p_start), the length (p_len) and the number of slots
+-- (p_count; null = until the level's end).
+-- (Replaces the older one- and three-argument versions.)
 drop function if exists private.is_valid_slot(timestamptz);
-create or replace function private.is_valid_slot(p_slot timestamptz, p_level text, p_count int) returns boolean
+drop function if exists private.is_valid_slot(timestamptz, text, int);
+create or replace function private.is_valid_slot(p_slot timestamptz, p_level text, p_count int, p_start time, p_len int) returns boolean
 language plpgsql stable set search_path = '' as $$
 declare
   s        public.settings;
@@ -271,6 +280,10 @@ begin
     d_end   := extract(hour from s.day_end)::int * 60 + extract(minute from s.day_end)::int;
     len     := s.slot_minutes;
   end if;
+  if p_start is not null then
+    d_start := extract(hour from p_start)::int * 60 + extract(minute from p_start)::int;
+  end if;
+  len := coalesce(p_len, len);
   if p_count is not null then
     return t_min >= d_start
        and (t_min - d_start) % len = 0
@@ -283,13 +296,20 @@ end $$;
 
 create or replace function private.is_valid_slot(p_slot timestamptz, p_level text) returns boolean
 language sql stable set search_path = '' as $$
-  select private.is_valid_slot(p_slot, p_level, null::int)
+  select private.is_valid_slot(p_slot, p_level, null::int, null::time, null::int)
 $$;
 
--- Is this a slot of this teacher (their level's grid and their own slot count)?
+-- Is this a slot of this teacher (their level's day with their own overrides)?
 create or replace function private.teacher_slot_ok(p_teacher uuid, p_slot timestamptz) returns boolean
 language sql stable set search_path = '' as $$
-  select coalesce((select private.is_valid_slot(p_slot, level, slot_count) from public.teachers where id = p_teacher), false)
+  select coalesce((select private.is_valid_slot(p_slot, level, slot_count, day_start, slot_minutes)
+                   from public.teachers where id = p_teacher), false)
+$$;
+
+-- A teacher's slot length: their own, else their level's.
+create or replace function private.teacher_minutes(p_teacher uuid) returns int
+language sql stable set search_path = '' as $$
+  select coalesce(slot_minutes, private.level_minutes(level)) from public.teachers where id = p_teacher
 $$;
 
 -- Does a child's class belong to this level? SD: '1'…'6'; SMP–SMA: '7A'…'12Z'.
@@ -311,7 +331,7 @@ language sql stable set search_path = '' as $$
     select 1 from private.bookings b join public.teachers t on t.id = b.teacher_id
     where b.phone = p_phone and b.kind = 'booking' and b.id is distinct from p_exclude
       and b.slot_start < p_slot + make_interval(mins => p_minutes)
-      and p_slot < b.slot_start + make_interval(mins => private.level_minutes(t.level))
+      and p_slot < b.slot_start + make_interval(mins => coalesce(t.slot_minutes, private.level_minutes(t.level)))
   )
 $$;
 
@@ -384,7 +404,7 @@ begin
   end if;
   if v_phone is not null then
     perform private.lock_parent(v_phone);
-    if private.parent_overlaps(v_phone, p_slot_start, private.level_minutes(v_level)) then
+    if private.parent_overlaps(v_phone, p_slot_start, private.teacher_minutes(p_teacher_id)) then
       raise exception 'PARENT_BUSY';
     end if;
   end if;
@@ -723,7 +743,7 @@ begin
   end if;
   if v_row.kind = 'booking' and v_row.phone is not null then
     perform private.lock_parent(v_row.phone);
-    if private.parent_overlaps(v_row.phone, p_slot_start, private.level_minutes(v_level), v_row.id) then
+    if private.parent_overlaps(v_row.phone, p_slot_start, private.teacher_minutes(p_teacher_id), v_row.id) then
       raise exception 'PARENT_BUSY';
     end if;
   end if;
@@ -781,6 +801,8 @@ declare
   v_grades int[] := coalesce(array(select json_array_elements_text(coalesce(p_teacher->'grades', '[]'::json))::int), '{}');
   v_level  text := coalesce(nullif(p_teacher->>'level', ''), 'smp_sma');
   v_count  int  := nullif(p_teacher->>'slotCount', '')::int;
+  v_start  time := nullif(p_teacher->>'dayStart', '')::time;
+  v_len    int  := nullif(p_teacher->>'slotMinutes', '')::int;
 begin
   perform private.require_session(p_token, 'admin');
   if length(btrim(coalesce(p_teacher->>'name', ''))) < 2 or v_level not in ('sd', 'smp_sma') then
@@ -791,7 +813,7 @@ begin
     raise exception 'INVALID_INPUT';
   end if;
   if v_id is null then
-    insert into public.teachers (name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level, slot_count)
+    insert into public.teachers (name, subject, grades, role, homeroom_class, is_leadership, room, available, sort_order, level, slot_count, day_start, slot_minutes)
     values (
       btrim(p_teacher->>'name'),
       nullif(btrim(coalesce(p_teacher->>'subject', '')), ''),
@@ -803,7 +825,9 @@ begin
       coalesce((p_teacher->>'available')::boolean, true),
       coalesce((p_teacher->>'sortOrder')::int, (select coalesce(max(sort_order), 0) + 1 from public.teachers)),
       v_level,
-      v_count
+      v_count,
+      v_start,
+      v_len
     )
     returning id into v_id;
   else
@@ -818,7 +842,9 @@ begin
       available      = coalesce((p_teacher->>'available')::boolean, true),
       sort_order     = coalesce((p_teacher->>'sortOrder')::int, sort_order),
       level          = v_level,
-      slot_count     = v_count
+      slot_count     = v_count,
+      day_start      = v_start,
+      slot_minutes   = v_len
     where id = v_id;
     if not found then
       raise exception 'NOT_FOUND';
@@ -886,7 +912,7 @@ begin
   where id = 1;
   if exists (
     select 1 from private.bookings b join public.teachers t on t.id = b.teacher_id
-    where not private.is_valid_slot(b.slot_start, t.level, t.slot_count)
+    where not private.is_valid_slot(b.slot_start, t.level, t.slot_count, t.day_start, t.slot_minutes)
   ) then
     raise exception 'SCHEDULE_CONFLICT';  -- rolls back everything above
   end if;

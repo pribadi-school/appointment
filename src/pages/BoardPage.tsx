@@ -9,7 +9,7 @@ import { Header } from '../components/Header';
 import { Card, PulseDot, Segmented, Skeleton, cx } from '../components/ui';
 import { useI18n } from '../lib/i18n';
 import { slotKey, useLive, useNow } from '../lib/live';
-import { currentSlotIndex, fmtDate, fmtRange, fmtTime, jakartaDate, levelGridStarts, scheduleFor, slotStarts, slotState, teacherSchedule, type SlotState } from '../lib/time';
+import { currentSlotIndex, fmtDate, fmtTime, gridCurrentIndex, jakartaDate, levelGrid, slotStarts, slotState, teacherSchedule, type SlotState } from '../lib/time';
 import type { Level, Teacher } from '../lib/types';
 
 type View = 'grid' | 'rooms';
@@ -50,10 +50,9 @@ export default function BoardPage() {
     () =>
       settings
         ? LEVELS.map((level) => {
-            const sch = scheduleFor(settings, level);
             const list = visible.filter((x) => x.level === level);
-            // Stretched to the class/teacher with the most slots.
-            return { level, starts: levelGridStarts(settings, level, list), minutes: sch.slotMinutes, teachers: list };
+            // Every slot start any class/teacher of this level has (lengths and counts can differ).
+            return { level, ...levelGrid(settings, level, list), teachers: list };
           })
         : [],
     [settings, visible],
@@ -62,7 +61,7 @@ export default function BoardPage() {
   const statusLabel = useStatusLabels();
 
   // Header line: Now / Starts at / Ended / event day (across both levels)
-  const spans = sections.flatMap((x) => x.starts.map((s) => [s, s + x.minutes * 60_000]));
+  const spans = sections.filter((x) => x.starts.length).map((x) => [x.starts[0], x.end]);
   const first = Math.min(...spans.map(([s]) => s));
   const last = Math.max(...spans.map(([, e]) => e));
   let nowText: string;
@@ -133,7 +132,7 @@ export default function BoardPage() {
             {sections
               .filter((x) => x.teachers.length)
               .map((x) => (
-                <GridSection key={x.level} title={t(x.level === 'sd' ? 'lvl_sd' : 'lvl_smp')} teachers={x.teachers} starts={x.starts} minutes={x.minutes} now={now} />
+                <GridSection key={x.level} title={t(x.level === 'sd' ? 'lvl_sd' : 'lvl_smp')} teachers={x.teachers} starts={x.starts} end={x.end} lengths={x.lengths} now={now} />
               ))}
           </div>
         ) : (
@@ -158,12 +157,26 @@ function useStatusLabels(): Record<SlotState, string> {
 }
 
 /** One level's grid: teachers down, that level's slot times across. */
-function GridSection({ title, teachers, starts, minutes, now }: { title: string; teachers: Teacher[]; starts: number[]; minutes: number; now: number }) {
+function GridSection({
+  title,
+  teachers,
+  starts,
+  end,
+  lengths,
+  now,
+}: {
+  title: string;
+  teachers: Teacher[];
+  starts: number[];
+  end: number;
+  lengths: number[];
+  now: number;
+}) {
   const { t } = useI18n();
   const { slots, flashing, settings } = useLive();
   const statusLabel = useStatusLabels();
   const scroller = useRef<HTMLDivElement>(null);
-  const current = currentSlotIndex(starts, minutes, now);
+  const current = gridCurrentIndex(starts, now, end);
 
   // Auto-scroll the grid so the current time column is in view.
   useEffect(() => {
@@ -177,14 +190,16 @@ function GridSection({ title, teachers, starts, minutes, now }: { title: string;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, starts.length]);
 
-  const state = (teacherId: string, start: number) => slotState(slots.get(slotKey(teacherId, start)), start, minutes, now);
+  // Each teacher's own slot length decides when their slot is in progress / done.
+  const state = (teacher: Teacher, start: number) =>
+    slotState(slots.get(slotKey(teacher.id, start)), start, settings ? teacherSchedule(settings, teacher).slotMinutes : lengths[0], now);
 
   return (
     <section aria-label={title}>
       <h2 className="mb-2 flex flex-wrap items-baseline gap-x-2 text-base font-bold text-foreground">
         {title}
         <span className="text-xs font-semibold text-muted-foreground tabular-nums">
-          {current >= 0 ? t('b_now', { range: fmtRange(starts[current], minutes) }) : t('minutes', { n: minutes })}
+          {current >= 0 ? t('b_now', { range: fmtTime(now) }) : lengths.map((n) => t('minutes', { n })).join(' / ')}
         </span>
       </h2>
       <Card className="overflow-hidden">
@@ -223,7 +238,7 @@ function GridSection({ title, teachers, starts, minutes, now }: { title: string;
                   </th>
                   {starts.map((s, i) => {
                     if (!own.has(s)) return <td key={s} className="border-b border-border p-0.5" aria-hidden />;
-                    const st = state(teacher.id, s);
+                    const st = state(teacher, s);
                     return (
                       <td key={s} className={cx('border-b border-border p-0.5', i === current && 'bg-action-tint')}>
                         <span

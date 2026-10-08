@@ -54,10 +54,10 @@ test('admin: book a walk-in, block a break, export, edit a teacher, change setti
   await expect(page.getByText(/24 slots: 08\.30 – 08\.40 … 12\.20 – 12\.30/)).toBeVisible();
   await page.getByRole('switch', { name: 'Parents can book online' }).click();
 
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   // Saved = finished saving and the form has no unsaved changes any more.
-  await expect(page.getByRole('button', { name: 'Save' })).not.toHaveAttribute('aria-busy');
-  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).not.toHaveAttribute('aria-busy');
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
   await page.goto('/smp-sma');
   await expect(page.getByText('Booking is closed')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled();
@@ -100,4 +100,33 @@ test('teacher: sign in with name + PIN, own schedule with parent details, Done',
   await now.getByRole('button', { name: 'Done' }).click();
   await expect(now.getByText('Done', { exact: true })).toBeVisible();
   await expect(now.getByRole('button', { name: 'Undo' })).toBeVisible();
+});
+
+test('admin: times per grade, e.g. Grade 1 in 10-minute slots; parents see them', async ({ page }) => {
+  await page.goto('/admin');
+  await page.getByLabel('Password').fill('demo');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('tab', { name: 'Event settings' }).click();
+
+  const grade1 = page.getByRole('listitem').filter({ hasText: /^Grade 1/ });
+  await expect(grade1).toContainText('08.00 – 12.00 · 16 slots of 15 min');
+  await grade1.getByLabel('Slot length').selectOption({ label: '10 min' });
+  await expect(grade1).toContainText('08.00 – 12.00 · 24 slots of 10 min');
+  const save = page.getByRole('button', { name: 'Save grade times' });
+  await save.click();
+  // Finished saving (not just busy) and nothing left unsaved.
+  await expect(save).not.toHaveAttribute('aria-busy');
+  await expect(save).toBeDisabled();
+
+  // Parent side: Grade 1 now has 08.10; Grade 2 keeps 15 minutes.
+  await page.goto('/sd');
+  await page.getByLabel('Your name').fill('Ibu Tes');
+  await page.getByLabel('Child’s name').fill('Kecil');
+  await page.getByRole('button', { name: /Child’s class/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Grade 1', exact: true }).click();
+  await expect(page.getByText('· 10 min')).toBeVisible();
+  await page.getByLabel('WhatsApp number').fill('0812 9000 0001');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByRole('button', { name: '08.10, Available' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^08\.15,/ })).toHaveCount(0);
 });

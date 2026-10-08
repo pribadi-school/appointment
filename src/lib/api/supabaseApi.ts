@@ -14,6 +14,8 @@ const toTeacher = (r: Row): Teacher => ({
   name: r.name as string,
   level: r.level === 'sd' ? 'sd' : 'smp_sma',
   slotCount: (r.slot_count as number | null) ?? null,
+  dayStart: r.day_start ? hhmm(r.day_start as string) : null,
+  slotMinutes: (r.slot_minutes as number | null) ?? null,
   subject: (r.subject as string) ?? null,
   grades: (r.grades as number[]) ?? [],
   role: (r.role as string) ?? null,

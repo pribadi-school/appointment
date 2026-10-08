@@ -48,10 +48,14 @@ mode (and the e2e tests, which run in demo mode) break.
 Every teacher row has `level` ('sd' | 'smp_sma'). An SD row is a *class*
 (homeroom_class '1'…'6'), named after its two homeroom teachers. Each level has
 its own day and slot length (`settings.day_*`/`slot_minutes` vs `sd_*`), so:
-- Never use `settings.slotMinutes` / `slotStarts(settings)` for a specific
-  teacher — use `scheduleFor(settings, teacher.level)` / `minutesFor` from
-  `src/lib/time.ts`. Grids (board, dashboard) are one per level.
-- SQL: `is_valid_slot(slot, level)`; class must fit the level
+- A teacher/SD class can override its level's day: `day_start`,
+  `slot_minutes`, `slot_count` (set per grade in Event settings, per teacher in
+  Teachers). Never use `settings.slotMinutes` / `slotStarts(settings)` /
+  `scheduleFor` for a specific teacher — use `teacherSchedule(settings,
+  teacher)` / `teacherMinutes` from `src/lib/time.ts`. Grids (board,
+  dashboard) are one per level, columns = `levelGrid()` (every start any
+  teacher has).
+- SQL: `teacher_slot_ok(teacher, slot)` / `teacher_minutes(teacher)`; class must fit the level
   (`class_fits_level`); "one room at a time" is an *overlap* check
   (`parent_overlaps`) under a per-phone advisory lock, not equal start times.
 - Show SD classes with `classLabel()` ("Grade 3" / "Kelas 3"), never the raw "3".

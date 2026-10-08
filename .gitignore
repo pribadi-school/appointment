@@ -8,3 +8,6 @@ playwright-report
 .claude
 
 report-upload.zip
+
+# Guides containing the teacher PIN / admin password
+docs/private/

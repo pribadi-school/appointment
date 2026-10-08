@@ -23,6 +23,9 @@ export type Teacher = {
   level: Level;
   /** Own number of slots from the level's start (a bigger class gets more); null = the level's day. */
   slotCount: number | null;
+  /** Own first slot ("08:00") and slot length; null = the level's. */
+  dayStart: string | null;
+  slotMinutes: number | null;
   subject: string | null;
   grades: number[]; // empty = every grade
   role: string | null;

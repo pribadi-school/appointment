@@ -211,6 +211,28 @@ describe('primary school (SD)', () => {
     await c.query('select public.admin_save_teacher($1, $2)', [token, { ...t, slotCount: 20 }]);
   });
 
+  it('per-grade times: Grade 1 at 10 min, Grade 2 at 15; no parent overlap across them', async () => {
+    const g1 = await sdTeacher(1);
+    const g2 = await sdTeacher(2);
+    await c.query(`update public.teachers set slot_minutes = 10 where id = $1`, [g1]);
+    try {
+      expect(await outcome(bookAs(g1, at('08:10'), '081266600001', 'Satu', '1'))).toBe('OK');
+      expect(await outcome(bookAs(g1, at('08:15'), '081266600002', 'Satu Dua', '1'))).toBe('INVALID_SLOT');
+      expect(await outcome(bookAs(g2, at('08:10'), '081266600003', 'Dua', '2'))).toBe('INVALID_SLOT');
+      // Same parent: Grade 2 08.15–08.30 overlaps Grade 1 08.20–08.30.
+      expect(await outcome(bookAs(g2, at('08:15'), '081266600009', 'Kakak', '2'))).toBe('OK');
+      expect(await outcome(bookAs(g1, at('08:20'), '081266600009', 'Adik', '1'))).toBe('PARENT_BUSY');
+      expect(await outcome(bookAs(g1, at('08:30'), '081266600009', 'Adik', '1'))).toBe('OK');
+      // Own first slot: Grade 1 from 09.00 → 08.40 is no longer a slot.
+      await c.query(`update public.teachers set day_start = '09:00' where id = $1`, [g1]);
+      expect(await outcome(bookAs(g1, at('08:40'), '081266600004', 'Satu Tiga', '1'))).toBe('INVALID_SLOT');
+      expect(await outcome(bookAs(g1, at('09:10'), '081266600004', 'Satu Tiga', '1'))).toBe('OK');
+    } finally {
+      await c.query('delete from private.bookings');
+      await c.query(`update public.teachers set slot_minutes = null, day_start = null where id = $1`, [g1]);
+    }
+  });
+
   it('admin: SD times are saved separately; a booking off the new SD grid is refused', async () => {
     await c.query(`select public.set_admin_password('correct horse')`);
     const { token } = (await c.query(`select public.admin_login('correct horse') r`)).rows[0].r;

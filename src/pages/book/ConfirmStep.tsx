@@ -9,7 +9,7 @@ import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { formatPhone, normalizePhone } from '../../lib/phone';
 import { avatarText, classLabel } from '../../lib/teachers';
-import { fmtDate, fmtRange, minutesFor } from '../../lib/time';
+import { fmtDate, fmtRange, teacherMinutes } from '../../lib/time';
 import { errorCode, type ErrorCode } from '../../lib/types';
 import type { Flow } from '../BookPage';
 
@@ -82,7 +82,7 @@ export function ConfirmStep({ flow }: { flow: Flow }) {
         </div>
         <dl className="divide-y divide-border-strong px-4">
           <Row icon={<Clock className="size-[18px]" />} label={t('c_time')}>
-            <span className="tabular-nums">{fmtRange(flow.slotStart, minutesFor(settings, teacher.level))}</span>
+            <span className="tabular-nums">{fmtRange(flow.slotStart, teacherMinutes(settings, teacher))}</span>
           </Row>
           <Row icon={<CalendarDays className="size-[18px]" />} label={t('c_date')}>
             {fmtDate(settings.eventDate, lang)}

@@ -1,7 +1,7 @@
 /** Export all bookings to CSV or Excel (.xlsx) from the admin page. */
 import { formatPhone } from './phone';
 import { classLabel } from './teachers';
-import { fmtDate, fmtRange, jakartaDate, minutesFor } from './time';
+import { fmtDate, fmtRange, jakartaDate, teacherMinutes } from './time';
 import type { T } from './i18n';
 import type { Booking, Lang, Settings, Teacher } from './types';
 
@@ -19,7 +19,7 @@ function rows(bookings: Booking[], teachers: Teacher[], settings: Settings, t: T
       const teacher = byId.get(b.teacherId);
       return [
         fmtDate(jakartaDate(b.slotStart), lang, { weekday: undefined }),
-        fmtRange(b.slotStart, minutesFor(settings, teacher?.level ?? 'smp_sma')),
+        fmtRange(b.slotStart, teacherMinutes(settings, teacher)),
         teacher?.name ?? '',
         teacher?.subject ?? '',
         teacher?.room ?? '',

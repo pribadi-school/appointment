@@ -8,7 +8,7 @@ import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { useTeacherSlots, type SlotView } from '../../lib/slots';
 import { avatarText, classLabel } from '../../lib/teachers';
-import { fmtTime, hourOf, minutesFor, overlaps } from '../../lib/time';
+import { fmtTime, hourOf, overlaps, teacherMinutes } from '../../lib/time';
 import type { Flow } from '../BookPage';
 
 type ChipState = 'available' | 'selected' | 'taken' | 'busy' | 'passed';
@@ -23,15 +23,15 @@ export function TimeStep({ flow }: { flow: Flow }) {
   const sd = flow.level === 'sd';
 
   // Times that overlap one this parent already has with ANOTHER teacher.
-  // Slot lengths differ between levels (SD 15 min, SMP–SMA 10 min), so any overlap counts.
+  // Slot lengths differ (by level, and per SD class), so any overlap counts.
   const busyAt = useMemo(() => {
     const out = new Set<number>();
     if (!settings || !teacher) return out;
-    const level = new Map(teachers.map((x) => [x.id, x.level]));
-    const mine = minutesFor(settings, teacher.level);
+    const byId = new Map(teachers.map((x) => [x.id, x]));
+    const mine = teacherMinutes(settings, teacher);
     const others = flow.busy.filter((b) => b.teacherId !== flow.teacherId);
     for (const s of slots)
-      if (others.some((b) => overlaps(s.start, mine, b.slotStart, minutesFor(settings, level.get(b.teacherId) ?? 'smp_sma')))) out.add(s.start);
+      if (others.some((b) => overlaps(s.start, mine, b.slotStart, teacherMinutes(settings, byId.get(b.teacherId))))) out.add(s.start);
     return out;
   }, [flow.busy, flow.teacherId, slots, settings, teacher, teachers]);
   const alreadyWithTeacher = flow.busy.find((b) => b.teacherId === flow.teacherId && b.sameChild);

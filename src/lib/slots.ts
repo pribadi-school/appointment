@@ -12,15 +12,17 @@ export function useTeacherSlots(teacherId: string | null): SlotView[] {
   const teacher = teachers.find((x) => x.id === teacherId);
   const level = teacher?.level;
   const count = teacher?.slotCount ?? null;
+  const ownStart = teacher?.dayStart ?? null;
+  const ownLength = teacher?.slotMinutes ?? null;
   return useMemo(() => {
     if (!settings || !teacherId || !level) return [];
-    const sch = teacherSchedule(settings, { level, slotCount: count });
+    const sch = teacherSchedule(settings, { level, slotCount: count, dayStart: ownStart, slotMinutes: ownLength });
     return slotStarts(sch).map((start) => {
       const key = slotKey(teacherId, start);
       const entry = slots.get(key);
       return { start, key, state: slotState(entry, start, sch.slotMinutes, now), label: entry?.label ?? null, flashing: flashing.has(key) };
     });
-  }, [settings, teacherId, level, count, slots, flashing, now]);
+  }, [settings, teacherId, level, count, ownStart, ownLength, slots, flashing, now]);
 }
 
 /** Number of still-bookable slots per teacher id. */

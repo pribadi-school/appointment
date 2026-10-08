@@ -6,7 +6,7 @@ import { api } from '../../lib/api';
 import { useI18n } from '../../lib/i18n';
 import { useLive, useNow } from '../../lib/live';
 import { classLabel } from '../../lib/teachers';
-import { currentSlotIndex, fmtTime, levelGridStarts, scheduleFor, slotStarts, teacherSchedule } from '../../lib/time';
+import { fmtTime, gridCurrentIndex, levelGrid, slotStarts, teacherSchedule } from '../../lib/time';
 import type { Booking, Level, Teacher } from '../../lib/types';
 import { useAdmin } from './AdminPage';
 import { SlotSheet } from './SlotSheet';
@@ -71,14 +71,15 @@ export function Dashboard() {
         {LEVELS.map((level) => {
           const list = sorted.filter((x) => x.level === level);
           if (!list.length) return null;
-          const sch = scheduleFor(settings, level);
+          const grid = levelGrid(settings, level, list);
           return (
             <LevelGrid
               key={level}
               title={t(level === 'sd' ? 'lvl_sd' : 'lvl_smp')}
               teachers={list}
-              starts={levelGridStarts(settings, level, list)}
-              minutes={sch.slotMinutes}
+              starts={grid.starts}
+              end={grid.end}
+              lengths={grid.lengths}
               map={map}
               onOpen={(teacherId, slotStart) => setOpen({ teacherId, slotStart })}
             />
@@ -95,14 +96,16 @@ function LevelGrid({
   title,
   teachers,
   starts,
-  minutes,
+  end,
+  lengths,
   map,
   onOpen,
 }: {
   title: string;
   teachers: Teacher[];
   starts: number[];
-  minutes: number;
+  end: number;
+  lengths: number[];
   map: Map<string, Booking>;
   onOpen: (teacherId: string, slotStart: number) => void;
 }) {
@@ -110,7 +113,7 @@ function LevelGrid({
   const { now } = useNow(15_000);
   const { settings } = useLive();
   const scroller = useRef<HTMLDivElement>(null);
-  const current = currentSlotIndex(starts, minutes, now);
+  const current = gridCurrentIndex(starts, now, end);
 
   useEffect(() => {
     const col = scroller.current?.querySelector<HTMLElement>(`[data-col="${current}"]`);
@@ -134,7 +137,7 @@ function LevelGrid({
   return (
     <section aria-label={title}>
       <h2 className="mb-2 text-base font-bold text-foreground">
-        {title} <span className="text-xs font-semibold text-muted-foreground">· {t('minutes', { n: minutes })}</span>
+        {title} <span className="text-xs font-semibold text-muted-foreground">· {lengths.map((n) => t('minutes', { n })).join(' / ')}</span>
       </h2>
       <Card className="overflow-hidden">
         <div ref={scroller} className="max-h-[calc(100dvh-300px)] min-h-40 overflow-auto overscroll-contain">

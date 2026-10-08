@@ -8,7 +8,7 @@ import { isLeadershipRole, parseHomeroom } from '../../data/seedTeachers';
 import { useI18n } from '../../lib/i18n';
 import { useLive } from '../../lib/live';
 import { avatarText, classLabel } from '../../lib/teachers';
-import { scheduleFor, slotStarts, teacherSchedule } from '../../lib/time';
+import { OwnScheduleFields, OwnSchedulePreview } from './OwnSchedule';
 import { CLASSES, SD_CLASSES, type Level, type Teacher } from '../../lib/types';
 import { useAdmin } from './AdminPage';
 
@@ -17,6 +17,8 @@ const NEW: Teacher = {
   name: '',
   level: 'smp_sma',
   slotCount: null,
+  dayStart: null,
+  slotMinutes: null,
   subject: null,
   grades: [],
   role: null,
@@ -124,38 +126,9 @@ export function TeachersTab() {
   );
 }
 
-/** Optional own number of slots (e.g. a big class). Empty = the level's usual times. */
-function SlotCountField({ f, onChange }: { f: Teacher; onChange: (n: number | null) => void }) {
-  const { t } = useI18n();
-  const { settings } = useLive();
-  if (!settings) return null;
-  const level = scheduleFor(settings, f.level);
-  const own = teacherSchedule(settings, f);
-  const hhmm = (s: string) => s.replace(':', '.');
-  return (
-    <Field
-      label={t('a_t_slots')}
-      type="number"
-      inputMode="numeric"
-      min={1}
-      max={96}
-      placeholder={String(slotStarts(level).length)}
-      value={f.slotCount ?? ''}
-      onChange={(e) => {
-        const n = parseInt(e.target.value, 10);
-        onChange(Number.isFinite(n) && n > 0 ? Math.min(n, 96) : null);
-      }}
-      hint={
-        f.slotCount
-          ? t('a_t_slotsSet', { start: hhmm(own.dayStart), end: hhmm(own.dayEnd), n: own.slotMinutes })
-          : t('a_t_slotsDefault', { start: hhmm(level.dayStart), end: hhmm(level.dayEnd) })
-      }
-    />
-  );
-}
-
 function TeacherSheet({ teacher, onClose }: { teacher: Teacher; onClose: () => void }) {
   const { t } = useI18n();
+  const { settings } = useLive();
   const { token, bookings, run } = useAdmin();
   const [f, setF] = useState<Teacher>(teacher);
   const [busy, setBusy] = useState(false);
@@ -284,7 +257,13 @@ function TeacherSheet({ teacher, onClose }: { teacher: Teacher; onClose: () => v
             </div>
           </>
         )}
-        <SlotCountField f={f} onChange={(n) => set('slotCount', n)} />
+        {settings && (
+          <fieldset className="space-y-2">
+            <legend className="mb-1.5 text-sm font-semibold text-foreground">{t('a_t_ownTimes')}</legend>
+            <OwnScheduleFields settings={settings} value={f} onChange={(v) => setF((x) => ({ ...x, ...v }))} />
+            <OwnSchedulePreview settings={settings} value={f} />
+          </fieldset>
+        )}
         <div className="flex items-center justify-between gap-3 rounded-md bg-surface-page px-4 py-3">
           <span className="text-sm font-semibold text-foreground">{t('a_t_available')}</span>
           <Switch checked={f.available} onChange={(v) => set('available', v)} label={t('a_t_available')} />

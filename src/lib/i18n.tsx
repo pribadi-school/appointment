@@ -53,7 +53,7 @@ const en = {
   nav_admin: 'Admin',
 
   // Home: greeting + level choice
-  home_hello: 'Welcome, Ayah & Bunda!',
+  home_hello: 'Very welcome, Ayah & Bunda!',
   home_body: 'Thank you for joining us for Report Card Day at Pribadi Depok. It is a special moment to celebrate your child’s growth together and talk about the steps ahead. Your partnership means so much to us and to your child. In each consultation, the teacher will go through the report card with you, share your child’s strengths and progress, and plan together how we can best support them at school and at home. Book a short, personal consultation with your child’s teachers. It only takes a minute, and we look forward to meeting you. Please arrive a few minutes before your time, so every family gets their full session.',
   home_choose: 'Choose your child’s level',
   lvl_sd: 'Primary School',

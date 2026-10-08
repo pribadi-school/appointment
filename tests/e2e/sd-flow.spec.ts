@@ -28,7 +28,7 @@ const ID = { parent: 'Nama Anda', child: 'Nama anak', cls: 'Kelas anak', phone: 
 
 test('home: greeting first, then the level choice; both fit a 360 px phone without scrolling', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Very welcome, Ayah & Bunda!' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome, Ayah & Bunda!' })).toBeVisible();
   await expect(page.getByText('Saturday, 17 October 2026')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Choose your child’s level' })).toBeVisible();
   const sd = page.getByRole('link', { name: /Primary School/ });

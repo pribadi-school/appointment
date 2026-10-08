@@ -54,7 +54,7 @@ const en = {
 
   // Home: greeting + level choice
   home_hello: 'Welcome, Ayah & Bunda!',
-  home_body: 'Thank you for joining us for Report Card Day at Pribadi Depok. It is a special moment to celebrate your child’s growth together and talk about the steps ahead. Your partnership means so much to us and to your child. Book a short, personal consultation with your child’s teachers. It only takes a minute, and we look forward to meeting you.',
+  home_body: 'Thank you for joining us for Report Card Day at Pribadi Depok. It is a special moment to celebrate your child’s growth together and talk about the steps ahead. Your partnership means so much to us and to your child. In each consultation, the teacher will go through the report card with you, share your child’s strengths and progress, and plan together how we can best support them at school and at home. Book a short, personal consultation with your child’s teachers. It only takes a minute, and we look forward to meeting you. Please arrive a few minutes before your time, so every family gets their full session.',
   home_choose: 'Choose your child’s level',
   lvl_sd: 'Primary School',
   lvl_smp: 'Junior – Senior High School',
@@ -391,7 +391,7 @@ const id: Record<MessageKey, string> = {
   nav_admin: 'Admin',
 
   home_hello: 'Selamat datang, Ayah & Bunda!',
-  home_body: 'Terima kasih telah hadir di Hari Pembagian Rapor Sekolah Pribadi Depok. Ini saat istimewa untuk merayakan perkembangan putra-putri Ayah & Bunda bersama, dan membicarakan langkah selanjutnya. Kerja sama Ayah & Bunda sangat berarti bagi kami dan bagi putra-putri tercinta. Pesan waktu konsultasi singkat dengan guru putra-putri Anda. Hanya butuh satu menit, dan kami menantikan pertemuan dengan Ayah & Bunda.',
+  home_body: 'Terima kasih telah hadir di Hari Pembagian Rapor Sekolah Pribadi Depok. Ini saat istimewa untuk merayakan perkembangan putra-putri Ayah & Bunda bersama, dan membicarakan langkah selanjutnya. Kerja sama Ayah & Bunda sangat berarti bagi kami dan bagi putra-putri tercinta. Dalam setiap konsultasi, guru akan membahas rapor bersama Ayah & Bunda, menyampaikan kelebihan dan perkembangan putra-putri, serta bersama-sama merencanakan cara terbaik untuk mendukung mereka di sekolah dan di rumah. Pesan waktu konsultasi singkat dengan guru putra-putri Anda. Hanya butuh satu menit, dan kami menantikan pertemuan dengan Ayah & Bunda. Mohon hadir beberapa menit sebelum jadwal, agar setiap keluarga mendapat waktu konsultasi yang utuh.',
   home_choose: 'Pilih jenjang putra-putri Anda',
   lvl_sd: 'SD',
   lvl_smp: 'SMP – SMA',

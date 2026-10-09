@@ -151,7 +151,8 @@ test('menu: reach every part of the app from the header; header fits a 360 px ph
   await page.goto('/');
   await page.getByRole('button', { name: 'Menu' }).click();
   const menu = page.getByRole('navigation', { name: 'Menu' });
-  for (const name of ['Book a consultation', 'My schedule', 'Teacher', 'Live board', 'Admin']) {
+  for (const name of ['Book a consultation', 'My schedule', 'Teacher', 'Admin']) {
+    await expect(menu.getByRole('link', { name: 'Live board' })).toHaveCount(0);
     await expect(menu.getByRole('link', { name, exact: true })).toBeVisible();
   }
   await expect(menu.getByRole('link', { name: 'Book a consultation' })).toHaveAttribute('aria-current', 'page');
@@ -176,7 +177,7 @@ test('menu: reach every part of the app from the header; header fits a 360 px ph
   await shot(page, '5-teacher-header');
 
   await page.getByRole('button', { name: 'Menu' }).click();
-  await menu.getByRole('link', { name: 'Live board', exact: true }).click();
-  await expect(page).toHaveURL(/\/board$/);
+  await menu.getByRole('link', { name: 'Admin', exact: true }).click();
+  await expect(page).toHaveURL(/\/admin$/);
   await expectNoHorizontalScroll(page);
 });

@@ -1,11 +1,13 @@
 /**
- * Header menu (hamburger): one place to reach every part of the app, for
- * parents and staff alike. Opens a panel under the header; closes on Esc, on a
- * tap outside, or when a link is followed. The current page is marked.
+ * Header menu (hamburger): parents' pages plus staff sign-in (Teacher, Admin).
+ * The live board is left out on purpose: it's for the venue screen, opened by
+ * the admin from its link (Admin → QR code), not something parents need.
+ * Opens a panel under the header; closes on Esc, on a tap outside, or when a
+ * link is followed. The current page is marked.
  */
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { CalendarCheck, GraduationCap, House, LayoutGrid, Menu, ShieldCheck, X } from 'lucide-react';
+import { CalendarCheck, GraduationCap, House, Menu, ShieldCheck, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '../lib/i18n';
 import { cx } from './ui';
 
@@ -13,7 +15,6 @@ const LINKS: { to: string; label: MessageKey; icon: typeof House; group: 'parent
   { to: '/', label: 'nav_book', icon: House, group: 'parents' },
   { to: '/my', label: 'nav_mySchedule', icon: CalendarCheck, group: 'parents' },
   { to: '/teacher', label: 'nav_teacher', icon: GraduationCap, group: 'staff' },
-  { to: '/board', label: 'nav_board', icon: LayoutGrid, group: 'staff' },
   { to: '/admin', label: 'nav_admin', icon: ShieldCheck, group: 'staff' },
 ];
 

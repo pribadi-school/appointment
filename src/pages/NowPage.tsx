@@ -1,80 +1,30 @@
 /**
- * "Now" screen for the venue TV (admin only): one card per consultation
+ * Live dashboard for the venue TV (public, no sign-in): one card per consultation
  * happening right now, with teacher, room and booking code, so parents can
  * find where to go. Cards are grouped by room; when they don't all fit, the
- * screen pages through them every 10 seconds. Updates live and moves on by
+ * screen pages through them every 15 seconds. Updates live and moves on by
  * itself when slots change (each teacher on their own times).
  */
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Backpack, CalendarDays, ChevronRight, Clock, MapPin, School } from 'lucide-react';
 import { Header, SchoolLogo } from '../components/Header';
-import { Button, Card, Field, Notice, Skeleton, StatusPill, cx } from '../components/ui';
+import { Card, Skeleton, StatusPill, cx } from '../components/ui';
 import { api } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { useLive, useNow } from '../lib/live';
-import { KEYS, load, save } from '../lib/storage';
 import { classLabel } from '../lib/teachers';
 import { fmtDate, fmtRange, fmtTime, jakartaDate, jakartaTime, slotStarts, teacherSchedule } from '../lib/time';
-import { errorCode, type Booking, type ErrorCode, type Level, type Session, type Settings, type Teacher } from '../lib/types';
+import { type Booking, type Level, type Settings, type Teacher } from '../lib/types';
 
 const PAGE_MS = 15_000;
 // TV layout per level, sized from the real bookings: SMP–SMA peaks at ~20
 // sessions at once (2 pages of 5 × 2), SD at 6 (one page of 3 × 2).
 const TV_GRID: Record<Level, { cols: number; rows: number }> = { smp_sma: { cols: 5, rows: 2 }, sd: { cols: 3, rows: 2 } };
 
-/** /now = choose the level; /now/sd and /now/smp-sma = that level's screen. */
+/** /now = choose the level; /now/sd and /now/smp-sma = that level's screen. Public: no sign-in. */
 export default function NowPage({ level }: { level?: Level }) {
-  const [session, setSession] = useState<Session | null>(() => {
-    const s = load<Session | null>(KEYS.adminSession, null);
-    return s && s.expiresAt > Date.now() ? s : null;
-  });
-  const signIn = (s: Session) => {
-    save(KEYS.adminSession, s);
-    setSession(s);
-  };
-  const signOut = useCallback(() => {
-    save(KEYS.adminSession, null);
-    setSession(null);
-  }, []);
-  if (!session) return <NowLogin onSignIn={signIn} />;
-  return level ? <NowScreen key={level} level={level} token={session.token} onExpired={signOut} /> : <NowChoose />;
-}
-
-/** Same admin password as /admin; the session is shared with the Admin page. */
-function NowLogin({ onSignIn }: { onSignIn: (s: Session) => void }) {
-  const { t, errorText } = useI18n();
-  const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<ErrorCode | null>(null);
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      onSignIn(await api.adminLogin(password));
-    } catch (err) {
-      setError(errorCode(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <div className="min-h-dvh">
-      <Header title={t('now_title')} />
-      <main className="mx-auto max-w-md px-4 pt-8">
-        <h1 className="text-2xl font-bold">{t('now_title')}</h1>
-        <p className="mt-1 mb-6 text-base text-muted-foreground">{t('now_signIn')}</p>
-        <form onSubmit={submit} className="space-y-5">
-          <Field label={t('a_password')} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          {error && <Notice tone="error">{errorText(error)}</Notice>}
-          <Button type="submit" block loading={busy} disabled={!password}>
-            {t('a_signIn')}
-          </Button>
-        </form>
-      </main>
-    </div>
-  );
+  return level ? <NowScreen key={level} level={level} /> : <NowChoose />;
 }
 
 type Now = { teacher: Teacher; booking: Booking; minutes: number; next: Booking | undefined };
@@ -151,7 +101,7 @@ function sampleBookings(settings: Settings, teachers: Teacher[], level: Level): 
   return out;
 }
 
-function NowScreen({ level, token, onExpired, dummy }: { level: Level; token?: string; onExpired?: () => void; dummy?: boolean }) {
+function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
   const { t, lang } = useI18n();
   const { settings: liveSettings, teachers, version } = useLive();
   const clock = useNow(5_000);
@@ -167,13 +117,13 @@ function NowScreen({ level, token, onExpired, dummy }: { level: Level; token?: s
   const [page, setPage] = useState(0);
 
   const fetchBookings = useCallback(async () => {
-    if (dummy || !token) return;
+    if (dummy) return;
     try {
-      setFetched(await api.adminBookings(token));
-    } catch (e) {
-      if (errorCode(e) === 'SESSION_EXPIRED') onExpired?.();
+      setFetched(await api.nowBoard());
+    } catch {
+      // Keep showing the last data; the next poll retries.
     }
-  }, [dummy, token, onExpired]);
+  }, [dummy]);
 
   // Live: on every slot change, plus a 15-second safety poll.
   useEffect(() => {

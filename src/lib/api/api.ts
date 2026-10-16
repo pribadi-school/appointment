@@ -29,6 +29,9 @@ export interface Api {
   /** Calls onChange whenever public data changes. Returns an unsubscribe fn. */
   subscribe(onChange: (topic: LiveTopic) => void, onConnection: (live: boolean) => void): () => void;
 
+  /** Live dashboard: bookings around now, code/teacher/time/status/class only. */
+  nowBoard(): Promise<Booking[]>;
+
   // Parents
   book(input: BookInput): Promise<{ id: string; code: string }>;
   busySlots(phone: string, childName: string): Promise<BusySlot[]>;

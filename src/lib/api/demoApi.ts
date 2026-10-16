@@ -318,6 +318,14 @@ export function createDemoApi(): Api {
       if (password !== DEMO_ADMIN_PASSWORD) throw new AppError('BAD_PASSWORD');
       return newSession(read(), 'admin');
     },
+    async nowBoard() {
+      await wait(120);
+      // Demo data is made up, so no time window (the tests use ?now=).
+      return read()
+        .bookings.filter((b) => b.kind === 'booking')
+        .map((b) => ({ ...b, parentName: null, childName: null, phone: null, note: null }))
+        .sort((a, b) => a.slotStart - b.slotStart);
+    },
     async adminBookings(token) {
       await wait(150);
       const db = read();

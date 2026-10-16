@@ -151,7 +151,7 @@ test('admin: times per grade, e.g. Grade 1 in 10-minute slots; parents see them'
   await expect(page.getByRole('button', { name: /^08\.15,/ })).toHaveCount(0);
 });
 
-test('now screen: admin only; shows the consultation in progress with room and booking code', async ({ page, context }) => {
+test('live dashboard: public, no sign-in; shows the consultation in progress with room and booking code', async ({ page, context }) => {
   const parent = await context.newPage();
   await parent.goto('/smp-sma');
   await parent.getByLabel('Your name').fill('Ibu Dewi');
@@ -165,11 +165,8 @@ test('now screen: admin only; shows the consultation in progress with room and b
   await parent.getByRole('button', { name: 'Book now' }).click();
   const code = (await parent.getByTestId('booking-code').textContent())!.trim();
 
-  // Not signed in → admin password first.
+  // No sign-in: straight to the level choice.
   await page.goto('/now');
-  await expect(page.getByText('Sign in with the admin password to open this screen.')).toBeVisible();
-  await page.getByLabel('Password').fill('demo');
-  await page.getByRole('button', { name: 'Sign in' }).click();
   // Choose the level; each level has its own page.
   await page.getByRole('link', { name: 'Junior – Senior High School' }).click();
   await expect(page).toHaveURL(/\/now\/smp-sma$/);

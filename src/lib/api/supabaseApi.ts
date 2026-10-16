@@ -149,6 +149,7 @@ export function createSupabaseApi(url: string, key: string): Api {
     logout: (token) => rpc('logout', { p_token: token }),
 
     adminLogin: (password) => login('admin_login', { p_password: password }),
+    nowBoard: async () => (await rpc<Row[]>('now_board', {})).map(toBooking),
     adminBookings: async (token) => (await rpc<Row[]>('admin_bookings', { p_token: token })).map(toBooking),
     adminNotes: async (token) => (await rpc<Record<string, string> | null>('admin_teacher_notes', { p_token: token })) ?? {},
     adminBook: (token, i) =>

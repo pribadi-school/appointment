@@ -7,7 +7,7 @@
  */
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { CalendarCheck, GraduationCap, House, Menu, ShieldCheck, X } from 'lucide-react';
+import { CalendarCheck, GraduationCap, House, Menu, ShieldCheck, Tv, X } from 'lucide-react';
 import { useI18n, type MessageKey } from '../lib/i18n';
 import { cx } from './ui';
 
@@ -16,6 +16,7 @@ const LINKS: { to: string; label: MessageKey; icon: typeof House; group: 'parent
   { to: '/my', label: 'nav_mySchedule', icon: CalendarCheck, group: 'parents' },
   { to: '/teacher', label: 'nav_teacher', icon: GraduationCap, group: 'staff' },
   { to: '/admin', label: 'nav_admin', icon: ShieldCheck, group: 'staff' },
+  { to: '/now', label: 'nav_now', icon: Tv, group: 'staff' },
 ];
 
 export function NavMenu() {
@@ -24,6 +25,9 @@ export function NavMenu() {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const root = useRef<HTMLDivElement>(null);
+  // Phones: a full-width panel right under the header. Wider screens: a
+  // dropdown anchored under the ☰ button.
+  const [phoneTop, setPhoneTop] = useState<number | null>(null);
   const button = useRef<HTMLButtonElement>(null);
 
   // Close when the page changes.
@@ -50,14 +54,19 @@ export function NavMenu() {
   const isCurrent = (to: string) => (to === '/' ? ['/', '/sd', '/smp-sma'].includes(pathname) : pathname.startsWith(to));
 
   return (
-    <div ref={root}>
+    <div ref={root} className="relative">
       <button
         ref={button}
         type="button"
         aria-label={t('nav_menu')}
         aria-expanded={open}
         aria-controls={panelId}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          const phone = !window.matchMedia('(min-width: 640px)').matches;
+          const header = root.current?.closest('header');
+          setPhoneTop(phone && header ? header.getBoundingClientRect().bottom : null);
+          setOpen((o) => !o);
+        }}
         className={cx(
           'inline-flex size-11 items-center justify-center rounded-md border transition-colors duration-150',
           open ? 'border-action bg-action-tint text-action' : 'border-border-strong text-foreground hover:bg-surface-page',
@@ -69,7 +78,13 @@ export function NavMenu() {
         <nav
           id={panelId}
           aria-label={t('nav_menu')}
-          className="absolute inset-x-0 top-full border-b border-border-strong bg-surface shadow-e4 animate-fade-in sm:right-4 sm:left-auto sm:mt-2 sm:w-72 sm:rounded-lg sm:border"
+          style={phoneTop !== null ? { top: phoneTop } : undefined}
+          className={cx(
+            'z-50 bg-surface shadow-e4 animate-fade-in',
+            phoneTop !== null
+              ? 'fixed inset-x-0 max-h-[calc(100dvh-80px)] overflow-y-auto border-b border-border-strong'
+              : 'absolute top-full right-0 mt-2 w-72 rounded-lg border border-border-strong',
+          )}
         >
           {(['parents', 'staff'] as const).map((group) => (
             <div key={group} className="border-b border-border-strong px-2 py-2 last:border-b-0">

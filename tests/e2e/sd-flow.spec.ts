@@ -151,7 +151,7 @@ test('menu: reach every part of the app from the header; header fits a 360 px ph
   await page.goto('/');
   await page.getByRole('button', { name: 'Menu' }).click();
   const menu = page.getByRole('navigation', { name: 'Menu' });
-  for (const name of ['Book a consultation', 'My schedule', 'Teacher', 'Admin']) {
+  for (const name of ['Book a consultation', 'My schedule', 'Teacher', 'Admin', 'Live dashboard']) {
     await expect(menu.getByRole('link', { name: 'Live board' })).toHaveCount(0);
     await expect(menu.getByRole('link', { name, exact: true })).toBeVisible();
   }

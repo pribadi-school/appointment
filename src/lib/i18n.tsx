@@ -45,6 +45,7 @@ const en = {
   // Navigation
   nav_book: 'Book a consultation',
   nav_menu: 'Menu',
+  nav_now: 'Live dashboard',
   nav_forParents: 'For parents',
   nav_forStaff: 'For school staff',
   nav_mySchedule: 'My schedule',
@@ -396,6 +397,7 @@ const id: Record<MessageKey, string> = {
 
   nav_book: 'Pesan konsultasi',
   nav_menu: 'Menu',
+  nav_now: 'Dasbor langsung',
   nav_forParents: 'Untuk orang tua',
   nav_forStaff: 'Untuk guru & staf',
   nav_mySchedule: 'Jadwal saya',

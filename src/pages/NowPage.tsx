@@ -5,7 +5,7 @@
  * screen pages through them every 10 seconds. Updates live and moves on by
  * itself when slots change (each teacher on their own times).
  */
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { CalendarDays, Clock, MapPin } from 'lucide-react';
 import { Header } from '../components/Header';
 import { Button, Card, Field, Notice, Skeleton, StatusPill } from '../components/ui';
@@ -18,6 +18,10 @@ import { fmtDate, fmtRange, fmtTime, jakartaDate, slotStarts, teacherSchedule } 
 import { errorCode, type Booking, type ErrorCode, type Session, type Teacher } from '../lib/types';
 
 const PAGE_MS = 10_000;
+// Fixed card size so we can tell exactly how many fit on the screen.
+const CARD_W = 290;
+const CARD_H = 236;
+const GAP = 16;
 
 export default function NowPage() {
   const [session, setSession] = useState<Session | null>(() => {
@@ -80,6 +84,7 @@ function NowScreen({ token, onExpired }: { token: string; onExpired: () => void 
   const [bookings, setBookings] = useState<Booking[] | null>(null);
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(12);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -98,17 +103,25 @@ function NowScreen({ token, onExpired }: { token: string; onExpired: () => void 
     return () => clearInterval(id);
   }, [fetchBookings]);
 
-  // How many cards fit on this screen (cards are ~330 × 250 px).
+  // How many cards fit below the title on this screen, without scrolling.
   useEffect(() => {
     const fit = () => {
-      const cols = Math.max(1, Math.floor((window.innerWidth - 32) / 330));
-      const rows = Math.max(1, Math.floor((window.innerHeight - 230) / 262));
+      const el = gridRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      const cols = Math.max(1, Math.floor((el.clientWidth + GAP) / (CARD_W + GAP)));
+      const rows = Math.max(1, Math.floor((window.innerHeight - top - 16 + GAP) / (CARD_H + GAP)));
       setPerPage(cols * rows);
     };
     fit();
+    const ro = new ResizeObserver(fit);
+    if (gridRef.current) ro.observe(gridRef.current);
     window.addEventListener('resize', fit);
-    return () => window.removeEventListener('resize', fit);
-  }, []);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', fit);
+    };
+  }, [bookings === null]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Consultations in progress right now, each teacher on their own schedule.
   const { current, nextStart } = useMemo(() => {
@@ -145,8 +158,8 @@ function NowScreen({ token, onExpired }: { token: string; onExpired: () => void 
   return (
     <div className="flex min-h-dvh flex-col">
       <Header title={t('now_title')} wide />
-      <main className="mx-auto w-full max-w-[1800px] flex-1 px-4 pt-5 pb-6 xl:px-8">
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+      <main className="w-full flex-1 px-4 pt-4 pb-4 xl:px-8">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="flex items-center gap-3 text-3xl font-extrabold xl:text-4xl">
               <Clock className="size-8 text-action" aria-hidden />
@@ -166,58 +179,61 @@ function NowScreen({ token, onExpired }: { token: string; onExpired: () => void 
           </div>
         </div>
 
-        {!bookings || !settings ? (
-          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(310px,1fr))]">
-            {Array.from({ length: 8 }, (_, i) => (
-              <Skeleton key={i} className="h-[240px] rounded-lg" />
-            ))}
-          </div>
-        ) : !current.length ? (
-          <Card className="mx-auto mt-10 max-w-xl p-10 text-center">
-            <p className="text-2xl font-bold text-foreground">{t('now_none')}</p>
-            <p className="mt-2 text-lg text-muted-foreground">
-              {eventDay && Number.isFinite(nextStart) ? t('now_nextAt', { time: fmtTime(nextStart) }) : eventDay ? t('b_ended') : t('b_eventDay', { date: fmtDate(settings.eventDate, lang) })}
-            </p>
-          </Card>
-        ) : (
-          <ul className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(310px,1fr))]">
-            {shown.map(({ teacher, booking, minutes, next }) => (
-              <li key={booking.id}>
-                <Card className="flex h-full flex-col p-5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-lg font-bold text-action tabular-nums">{fmtRange(booking.slotStart, minutes)}</span>
-                    <StatusPill
-                      status={booking.status === 'done' ? 'done' : booking.status === 'no_show' ? 'noShow' : 'inProgress'}
-                      label={booking.status === 'done' ? t('st_done') : booking.status === 'no_show' ? t('st_noShow') : t('st_inProgress')}
-                    />
-                  </div>
-                  <p className="mt-3 text-xl leading-snug font-bold text-foreground">{teacher.name}</p>
-                  {teacher.level === 'sd' && <p className="text-sm text-muted-foreground">{t('sd_teachers')} · {classLabel(teacher.homeroomClass, t)}</p>}
-                  <p className="mt-2 flex items-center gap-2 text-lg font-semibold text-foreground">
-                    <MapPin className="size-5 shrink-0 text-action" aria-hidden />
-                    {teacher.room ?? t('roomTbc')}
-                  </p>
-                  <div className="mt-4 flex items-end justify-between gap-3 border-t border-border-strong pt-3">
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('done_code')}</p>
-                      <p className="font-mono text-3xl font-bold tracking-[0.15em] text-foreground">{booking.code}</p>
+        <div ref={gridRef}>
+          {!bookings || !settings ? (
+            <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${CARD_W}px, 1fr))` }}>
+              {Array.from({ length: 8 }, (_, i) => (
+                <Skeleton key={i} className="rounded-lg" />
+              ))}
+            </div>
+          ) : !current.length ? (
+            <Card className="mx-auto mt-10 max-w-xl p-10 text-center">
+              <p className="text-2xl font-bold text-foreground">{t('now_none')}</p>
+              <p className="mt-2 text-lg text-muted-foreground">
+                {eventDay && Number.isFinite(nextStart) ? t('now_nextAt', { time: fmtTime(nextStart) }) : eventDay ? t('b_ended') : t('b_eventDay', { date: fmtDate(settings.eventDate, lang) })}
+              </p>
+            </Card>
+          ) : (
+            <ul className="grid gap-4" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${CARD_W}px, 1fr))`, gridAutoRows: `${CARD_H}px` }}>
+              {shown.map(({ teacher, booking, minutes, next }) => (
+                <li key={booking.id} className="min-h-0">
+                  <Card className="flex h-full flex-col px-4 py-3.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-base font-bold text-action tabular-nums">{fmtRange(booking.slotStart, minutes)}</span>
+                      <StatusPill
+                        status={booking.status === 'done' ? 'done' : booking.status === 'no_show' ? 'noShow' : 'inProgress'}
+                        label={booking.status === 'done' ? t('st_done') : booking.status === 'no_show' ? t('st_noShow') : t('st_inProgress')}
+                      />
                     </div>
-                    <p className="text-right text-sm text-muted-foreground">{classLabel(booking.childClass, t)}</p>
-                  </div>
-                  <p className="mt-auto pt-3 text-sm text-muted-foreground">
-                    {next ? (
-                      <>
-                        {t('b_next')}: <span className="font-semibold text-foreground tabular-nums">{fmtTime(next.slotStart)}</span> · {t('now_code', { code: next.code })}
-                      </>
-                    ) : (
-                      t('b_noMore')
-                    )}
-                  </p>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
+                    <p className="mt-2 line-clamp-2 text-lg leading-snug font-bold text-foreground" title={teacher.name}>
+                      {teacher.name}
+                    </p>
+                    <p className="mt-1 flex items-center gap-1.5 truncate text-base font-semibold text-foreground">
+                      <MapPin className="size-4 shrink-0 text-action" aria-hidden />
+                      {teacher.room ?? t('roomTbc')}
+                    </p>
+                    <div className="mt-auto flex items-end justify-between gap-3 border-t border-border-strong pt-2">
+                      <div>
+                        <p className="text-xs text-muted-foreground">{t('done_code')}</p>
+                        <p className="font-mono text-[28px] leading-tight font-bold tracking-[0.12em] text-foreground">{booking.code}</p>
+                      </div>
+                      <p className="pb-1 text-sm text-muted-foreground">{classLabel(booking.childClass, t)}</p>
+                    </div>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {next ? (
+                        <>
+                          {t('b_next')}: <span className="font-semibold text-foreground tabular-nums">{fmtTime(next.slotStart)}</span> · {t('now_code', { code: next.code })}
+                        </>
+                      ) : (
+                        t('b_noMore')
+                      )}
+                    </p>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </main>
     </div>
   );

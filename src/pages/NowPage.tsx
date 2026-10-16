@@ -181,7 +181,7 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
   return (
     <div className={cx('flex flex-col bg-surface-page', tv ? 'h-dvh overflow-hidden' : 'min-h-dvh')}>
       <main className="flex min-h-0 w-full flex-1 flex-col px-4 py-4 lg:px-[2vw] lg:py-[2vh]">
-        <header className="mb-5 flex flex-col gap-4 sm:mb-[2.5vh] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-8 sm:gap-y-3">
+        <header className="mb-6 flex flex-col gap-5 sm:mb-[2.5vh] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-8 sm:gap-y-3">
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-[1.5vw]">
             <SchoolLogo className="h-[clamp(36px,6vh,84px)]" />
             <div>
@@ -190,19 +190,19 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
               <p className="text-[clamp(14px,2vh,26px)] text-muted-foreground">{t('now_lead')}</p>
             </div>
           </div>
-          {/* Phones: clock on the left, date and count on the right, under the greeting. */}
-          <div className="flex items-center justify-between gap-3 border-t border-border-strong pt-3 sm:ml-auto sm:block sm:border-0 sm:pt-0 sm:text-right">
+          {/* Phones: clock and count on one row, the date under them. */}
+          <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 border-t border-border-strong pt-4 sm:ml-auto sm:block sm:border-0 sm:pt-0 sm:text-right">
             <p className="flex shrink-0 items-center justify-end gap-2 text-[34px] leading-none font-extrabold tabular-nums sm:gap-3 sm:text-[clamp(28px,5vh,68px)]">
               <Clock className="size-[0.8em] text-action" aria-hidden />
               {fmtTime(now)}
             </p>
-            <div className="text-right">
-              <p className="flex items-center justify-end gap-2 text-[clamp(13px,1.8vh,24px)] text-muted-foreground sm:mt-[1vh]">
+            <div className="contents sm:block">
+              <p className="col-span-2 row-start-2 flex items-center gap-2 text-[clamp(13px,1.8vh,24px)] text-muted-foreground sm:mt-[1vh] sm:justify-end">
                 <CalendarDays className="size-[1em] shrink-0" aria-hidden />
                 {settings ? fmtDate(settings.eventDate, lang) : ''}
                 {simulated && ` · ${t('b_simulated', { time: fmtTime(now) })}`}
               </p>
-              <p className="mt-[0.8vh] text-[clamp(14px,2vh,26px)] font-semibold" aria-live="polite">
+              <p className="col-start-2 row-start-1 text-right text-[clamp(14px,2vh,26px)] font-semibold sm:mt-[0.8vh]" aria-live="polite">
                 {t('now_count', { n: current.length })}
                 {pages > 1 && <span className="text-muted-foreground tabular-nums"> · {t('now_page', { p: (page % pages) + 1, n: pages })}</span>}
               </p>
@@ -227,7 +227,7 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
           </div>
         ) : (
           <ul
-            className={cx('grid gap-[1.2vw]', tv && 'min-h-0 flex-1')}
+            className={cx('grid', tv ? 'min-h-0 flex-1 gap-[1.2vw]' : 'gap-4')}
             style={
               tv
                 ? { gridTemplateColumns: `repeat(${grid.cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${grid.rows}, minmax(0, 1fr))` }
@@ -238,7 +238,7 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
               // TV: the card is a size container and everything inside is sized from the card itself
               // (cqh/cqw), so it always fits, whatever screen or player app shows the page.
               <li key={booking.id} className="min-h-0" style={tv ? { containerType: 'size' } : undefined}>
-                <Card className={cx('flex h-full flex-col overflow-hidden', tv ? 'px-[min(5cqh,6cqw)] py-[5cqh]' : 'p-4')}>
+                <Card className={cx('flex h-full flex-col overflow-hidden', tv ? 'px-[min(5cqh,6cqw)] py-[5cqh]' : 'p-5')}>
                   <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                     <span className={cx('leading-tight font-bold whitespace-nowrap text-action tabular-nums', tv ? 'text-[min(7cqh,8cqw)]' : 'text-lg')}>
                       {fmtRange(booking.slotStart, minutes)}
@@ -250,25 +250,25 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
                     />
                   </div>
                   <p
-                    className={cx('line-clamp-2 shrink-0 leading-[1.3] font-bold text-foreground', tv ? 'mt-[2.5cqh] text-[min(8cqh,8.5cqw)]' : 'mt-2 text-xl')}
+                    className={cx('shrink-0 leading-[1.3] font-bold text-foreground', tv ? 'mt-[2.5cqh] line-clamp-2 text-[min(8cqh,8.5cqw)]' : 'mt-3 line-clamp-3 text-xl')}
                     title={teacher.name}
                   >
                     {teacher.name}
                   </p>
-                  <p className={cx('flex shrink-0 items-center gap-[0.3em] truncate leading-tight font-bold text-foreground', tv ? 'mt-[1.5cqh] text-[min(7.5cqh,8cqw)]' : 'mt-1 text-lg')}>
+                  <p className={cx('flex shrink-0 items-center gap-[0.3em] truncate leading-tight font-bold text-foreground', tv ? 'mt-[1.5cqh] text-[min(7.5cqh,8cqw)]' : 'mt-2 text-lg')}>
                     <MapPin className="size-[0.9em] shrink-0 text-action" aria-hidden />
                     {teacher.room ?? t('roomTbc')}
                   </p>
-                  <div className={cx('mt-auto flex shrink-0 items-end justify-between gap-3 border-t border-border-strong', tv ? 'pt-[2.5cqh]' : 'pt-2')}>
+                  <div className={cx('flex shrink-0 items-end justify-between gap-3 border-t border-border-strong', tv ? 'mt-auto pt-[2.5cqh]' : 'mt-4 pt-4')}>
                     <div>
                       <p className={cx('leading-snug text-muted-foreground', tv ? 'text-[min(4cqh,4.2cqw)]' : 'text-xs')}>{t('done_code')}</p>
-                      <p className={cx('font-mono leading-none font-bold tracking-[0.12em] text-foreground', tv ? 'text-[min(18cqh,20cqw)]' : 'text-4xl')}>{booking.code}</p>
+                      <p className={cx('font-mono leading-none font-bold tracking-[0.12em] text-foreground', tv ? 'text-[min(18cqh,20cqw)]' : 'mt-1 text-4xl')}>{booking.code}</p>
                     </div>
                     {!sd && (
                       <p className={cx('leading-none font-semibold text-muted-foreground', tv ? 'text-[min(5.5cqh,6cqw)]' : 'text-base')}>{classLabel(booking.childClass, t)}</p>
                     )}
                   </div>
-                  <p className={cx('shrink-0 truncate leading-snug text-muted-foreground', tv ? 'mt-[1.5cqh] text-[min(4.2cqh,4.4cqw)]' : 'mt-1 text-sm')}>
+                  <p className={cx('shrink-0 truncate leading-snug text-muted-foreground', tv ? 'mt-[1.5cqh] text-[min(4.2cqh,4.4cqw)]' : 'mt-3 text-sm')}>
                     {next ? (
                       <>
                         {t('b_next')}: <span className="font-semibold text-foreground tabular-nums">{fmtTime(next.slotStart)}</span> · {t('now_code', { code: next.code })}

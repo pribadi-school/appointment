@@ -176,6 +176,6 @@ test('now screen: admin only; shows the consultation in progress with room and b
 
   // Between sessions: nothing in progress, next start shown.
   await page.goto('/now?now=08:20');
-  await expect(page.getByText('No consultations right now')).toBeVisible();
+  await expect(page.getByText('No consultations at this moment')).toBeVisible();
   await expect(page.getByText('Next consultations start at 08.30')).toBeVisible();
 });

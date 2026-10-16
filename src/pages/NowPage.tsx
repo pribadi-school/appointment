@@ -159,23 +159,25 @@ function NowScreen({ token, onExpired }: { token: string; onExpired: () => void 
     <div className="flex min-h-dvh flex-col">
       <Header title={t('now_title')} wide />
       <main className="w-full flex-1 px-4 pt-4 pb-4 xl:px-8">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div className="mb-7 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div>
-            <h1 className="flex items-center gap-3 text-3xl font-extrabold xl:text-4xl">
-              <Clock className="size-8 text-action" aria-hidden />
-              {t('now_title')} · <span className="tabular-nums">{fmtTime(now)}</span>
-            </h1>
-            <p className="mt-1 flex items-center gap-2 text-base text-muted-foreground">
+            <h1 className="text-3xl font-extrabold xl:text-4xl">{t('now_hello')}</h1>
+            <p className="mt-1 text-lg text-muted-foreground">{t('now_lead')}</p>
+          </div>
+          <div className="ml-auto text-right">
+            <p className="flex items-center justify-end gap-2.5 text-3xl font-extrabold text-foreground tabular-nums xl:text-4xl">
+              <Clock className="size-7 text-action" aria-hidden />
+              {fmtTime(now)}
+            </p>
+            <p className="mt-2 flex items-center justify-end gap-2 text-base text-muted-foreground">
               <CalendarDays className="size-4" aria-hidden />
               {settings ? fmtDate(settings.eventDate, lang) : ''}
               {simulated && ` · ${t('b_simulated', { time: fmtTime(now) })}`}
             </p>
-          </div>
-          <div className="text-right">
-            <p className="text-xl font-bold text-foreground" aria-live="polite">
+            <p className="mt-2 text-base font-semibold text-foreground" aria-live="polite">
               {t('now_count', { n: current.length })}
+              {pages > 1 && <span className="text-muted-foreground tabular-nums"> · {t('now_page', { p: (page % pages) + 1, n: pages })}</span>}
             </p>
-            {pages > 1 && <p className="text-base font-semibold text-muted-foreground tabular-nums">{t('now_page', { p: (page % pages) + 1, n: pages })}</p>}
           </div>
         </div>
 

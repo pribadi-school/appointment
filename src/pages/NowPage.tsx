@@ -181,17 +181,6 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
   return (
     <div className={cx('flex flex-col bg-surface-page', tv ? 'h-dvh overflow-hidden' : 'min-h-dvh')}>
       <main className="flex min-h-0 w-full flex-1 flex-col px-4 py-4 lg:px-[2vw] lg:py-[2vh]">
-        {dummy && (
-          <p className="mb-[1.5vh] flex flex-wrap items-center gap-x-3 gap-y-1 self-start rounded-md border border-accent/30 bg-accent-tint px-3 py-1.5 text-sm text-foreground">
-            <span className="font-semibold">{t('now_sample')}</span>
-            <Link to="/livedummy/sd" className="font-semibold text-action underline-offset-2 hover:underline">
-              {t('lvl_sd')}
-            </Link>
-            <Link to="/livedummy" className="font-semibold text-action underline-offset-2 hover:underline">
-              {t('lvl_smp')}
-            </Link>
-          </p>
-        )}
         <header className="mb-5 flex flex-col gap-4 sm:mb-[2.5vh] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-8 sm:gap-y-3">
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-[1.5vw]">
             <SchoolLogo className="h-[clamp(36px,6vh,84px)]" />

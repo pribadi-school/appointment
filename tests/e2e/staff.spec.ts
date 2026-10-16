@@ -193,14 +193,15 @@ test('live dashboard: public, no sign-in; shows the consultation in progress wit
 
 test('live dashboard preview (/livedummy): public, sample data, always has sessions', async ({ page }) => {
   await page.goto('/livedummy');
-  await expect(page.getByText('Preview with sample data. Booking codes are not real.')).toBeVisible();
+  // No sample-data banner: it looks like the real screen.
+  await expect(page.getByText(/sample data/i)).toHaveCount(0);
   await expect(page.getByText('Welcome, Ayah & Bunda!')).toBeVisible();
   // No password, and cards are there (every teacher has a sample session).
   await expect(page.getByLabel('Password')).toHaveCount(0);
   await expect(page.getByRole('listitem').first()).toContainText('In progress');
   await expect(page.getByText(/consultation\(s\) now/)).toBeVisible();
   // SD page: only SD classes.
-  await page.getByRole('link', { name: 'Primary School' }).click();
+  await page.goto('/livedummy/sd');
   await expect(page).toHaveURL(/\/livedummy\/sd$/);
   await expect(page.getByRole('listitem').first()).toContainText('Grade');
   await expect(page.getByText('6 consultation(s) now')).toBeVisible();

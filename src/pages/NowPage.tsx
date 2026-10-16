@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Backpack, CalendarDays, ChevronRight, Clock, Link2, MapPin, School } from 'lucide-react';
 import QRCode from 'qrcode';
-import { Header } from '../components/Header';
+import { Header, SchoolLogo } from '../components/Header';
 import { Card, Skeleton, StatusPill, cx } from '../components/ui';
 import { api } from '../lib/api';
 import { useI18n } from '../lib/i18n';
@@ -145,7 +145,7 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
     return () => window.removeEventListener('resize', fit);
   }, []);
   const grid = TV_GRID[level];
-  // TV: QR code to the booking site, where the logo would be (same link as the QR poster).
+  // TV: QR code to the booking site, next to its address (same link as the QR poster).
   const [qr, setQr] = useState('');
   useEffect(() => {
     QRCode.toString(`https://${SITE}/`, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#12233c', light: '#ffffff' } }).then(setQr);
@@ -193,14 +193,7 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
       <main className={cx('flex min-h-0 w-full flex-1 flex-col', tv ? 'px-[2vw] py-[2vh]' : 'px-4 pt-6 pb-10')}>
         <header className="mb-6 flex flex-col gap-5 sm:mb-[2.5vh] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-[2vw] sm:gap-y-3">
           <div className={cx('flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-[1.5vw]', tv && 'min-w-0 flex-1')}>
-            {tv && qr && (
-              <div
-                className="aspect-square h-[clamp(80px,14vh,180px)] shrink-0 rounded-md bg-surface p-[0.6vh] [&_svg]:size-full"
-                role="img"
-                aria-label={`QR: https://${SITE}/`}
-                dangerouslySetInnerHTML={{ __html: qr }}
-              />
-            )}
+            {tv && <SchoolLogo className="h-[clamp(36px,6vh,84px)]" />}
             <div>
               <p className="text-[clamp(13px,1.8vh,24px)] font-bold tracking-wide text-action uppercase">{t(sd ? 'lvl_sd' : 'lvl_smp')}</p>
               <h1 className="text-[clamp(24px,4.2vh,56px)] leading-tight font-extrabold">{t('now_hello')}</h1>
@@ -209,10 +202,20 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
           </div>
           {/* TV: the site address, so parents can open it on their phone. */}
           {tv && (
-            <p className="hidden shrink-0 items-center gap-[0.4em] rounded-lg bg-action xl:flex px-[1em] py-[0.5em] text-[clamp(16px,2.6vh,36px)] leading-none font-bold text-on-primary">
-              <Link2 className="size-[0.9em] shrink-0" aria-hidden />
-              {SITE}
-            </p>
+            <div className="hidden shrink-0 flex-col items-center gap-[0.8vh] xl:flex">
+              {qr && (
+                <div
+                  className="aspect-square h-[clamp(72px,11vh,150px)] shrink-0 rounded-md bg-surface p-[0.5vh] [&_svg]:size-full"
+                  role="img"
+                  aria-label={`QR: https://${SITE}/`}
+                  dangerouslySetInnerHTML={{ __html: qr }}
+                />
+              )}
+              <p className="flex items-center gap-[0.3em] text-[clamp(13px,1.8vh,24px)] leading-none font-bold text-action">
+                <Link2 className="size-[1em] shrink-0" aria-hidden />
+                {SITE}
+              </p>
+            </div>
           )}
           {/* Phones: clock and count on one row, the date under them. */}
           <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 border-t border-border-strong pt-4 sm:ml-auto sm:block sm:border-0 sm:pt-0 sm:text-right">

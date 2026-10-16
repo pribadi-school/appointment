@@ -246,38 +246,40 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
             }
           >
             {shown.map(({ teacher, booking, minutes, next }) => (
-              <li key={booking.id} className="min-h-0">
-                <Card className={'flex h-full flex-col p-[2vh]'}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={cx('font-bold text-action tabular-nums', sd ? 'text-[clamp(16px,3vh,40px)]' : 'text-[clamp(15px,2.5vh,34px)]')}>
+              // TV: the card is a size container and everything inside is sized from the card itself
+              // (cqh/cqw), so it always fits, whatever screen or player app shows the page.
+              <li key={booking.id} className="min-h-0" style={tv ? { containerType: 'size' } : undefined}>
+                <Card className={cx('flex h-full flex-col overflow-hidden', tv ? 'px-[min(5cqh,6cqw)] py-[5cqh]' : 'p-4')}>
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                    <span className={cx('leading-tight font-bold whitespace-nowrap text-action tabular-nums', tv ? 'text-[min(7cqh,8cqw)]' : 'text-lg')}>
                       {fmtRange(booking.slotStart, minutes)}
                     </span>
                     <StatusPill
-                      className={sd ? 'text-[clamp(12px,1.8vh,22px)]' : 'text-[clamp(11px,1.5vh,19px)]'}
+                      className={tv ? 'text-[min(4.2cqh,4.4cqw)]' : undefined}
                       status={booking.status === 'done' ? 'done' : booking.status === 'no_show' ? 'noShow' : 'inProgress'}
                       label={booking.status === 'done' ? t('st_done') : booking.status === 'no_show' ? t('st_noShow') : t('st_inProgress')}
                     />
                   </div>
                   <p
-                    className={cx('mt-[1.2vh] line-clamp-2 shrink-0 leading-snug font-bold text-foreground', sd ? 'text-[clamp(17px,3vh,40px)]' : 'text-[clamp(17px,2.9vh,38px)]')}
+                    className={cx('line-clamp-2 shrink-0 leading-[1.3] font-bold text-foreground', tv ? 'mt-[2.5cqh] text-[min(8cqh,8.5cqw)]' : 'mt-2 text-xl')}
                     title={teacher.name}
                   >
                     {teacher.name}
                   </p>
-                  <p className={cx('mt-[0.8vh] flex shrink-0 items-center gap-2 truncate font-bold text-foreground', sd ? 'text-[clamp(17px,3.2vh,42px)]' : 'text-[clamp(16px,2.7vh,36px)]')}>
+                  <p className={cx('flex shrink-0 items-center gap-[0.3em] truncate leading-tight font-bold text-foreground', tv ? 'mt-[1.5cqh] text-[min(7.5cqh,8cqw)]' : 'mt-1 text-lg')}>
                     <MapPin className="size-[0.9em] shrink-0 text-action" aria-hidden />
                     {teacher.room ?? t('roomTbc')}
                   </p>
-                  <div className="mt-auto flex items-end justify-between gap-3 border-t border-border-strong pt-[1vh]">
+                  <div className={cx('mt-auto flex shrink-0 items-end justify-between gap-3 border-t border-border-strong', tv ? 'pt-[2.5cqh]' : 'pt-2')}>
                     <div>
-                      <p className="text-[clamp(11px,1.5vh,20px)] text-muted-foreground">{t('done_code')}</p>
-                      <p className={cx('font-mono leading-none font-bold tracking-[0.12em] text-foreground', 'text-[clamp(30px,6vh,80px)]')}>
-                        {booking.code}
-                      </p>
+                      <p className={cx('leading-snug text-muted-foreground', tv ? 'text-[min(4cqh,4.2cqw)]' : 'text-xs')}>{t('done_code')}</p>
+                      <p className={cx('font-mono leading-none font-bold tracking-[0.12em] text-foreground', tv ? 'text-[min(18cqh,20cqw)]' : 'text-4xl')}>{booking.code}</p>
                     </div>
-                    {!sd && <p className="pb-1 text-[clamp(13px,2vh,26px)] font-semibold text-muted-foreground">{classLabel(booking.childClass, t)}</p>}
+                    {!sd && (
+                      <p className={cx('leading-none font-semibold text-muted-foreground', tv ? 'text-[min(5.5cqh,6cqw)]' : 'text-base')}>{classLabel(booking.childClass, t)}</p>
+                    )}
                   </div>
-                  <p className="mt-[0.8vh] truncate text-[clamp(11px,1.6vh,21px)] text-muted-foreground">
+                  <p className={cx('shrink-0 truncate leading-snug text-muted-foreground', tv ? 'mt-[1.5cqh] text-[min(4.2cqh,4.4cqw)]' : 'mt-1 text-sm')}>
                     {next ? (
                       <>
                         {t('b_next')}: <span className="font-semibold text-foreground tabular-nums">{fmtTime(next.slotStart)}</span> · {t('now_code', { code: next.code })}

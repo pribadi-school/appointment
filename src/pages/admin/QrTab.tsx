@@ -50,6 +50,7 @@ export function QrTab() {
         </Button>
         {[
           { label: t('nav_book'), link: url },
+          { label: t('a_qr_now'), link: `${origin}/now` },
           { label: t('a_qr_board'), link: `${origin}/board` },
           { label: t('a_qr_teacher'), link: `${origin}/teacher` },
           { label: t('nav_mySchedule'), link: `${origin}/my` },

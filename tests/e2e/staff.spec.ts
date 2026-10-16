@@ -145,3 +145,37 @@ test('admin: times per grade, e.g. Grade 1 in 10-minute slots; parents see them'
   await expect(page.getByRole('button', { name: '08.10, Available' })).toBeVisible();
   await expect(page.getByRole('button', { name: /^08\.15,/ })).toHaveCount(0);
 });
+
+test('now screen: admin only; shows the consultation in progress with room and booking code', async ({ page, context }) => {
+  const parent = await context.newPage();
+  await parent.goto('/smp-sma');
+  await parent.getByLabel('Your name').fill('Ibu Dewi');
+  await parent.getByLabel('Child’s name').fill('Bima');
+  await parent.getByRole('button', { name: /Child’s class/ }).click();
+  await parent.getByRole('dialog').getByRole('button', { name: '8B', exact: true }).click();
+  await parent.getByLabel('WhatsApp number').fill('0816 1234 5678');
+  await parent.getByRole('button', { name: 'Continue' }).click();
+  await parent.getByRole('button', { name: /Yusri Ramadhan/ }).first().click();
+  await parent.getByRole('button', { name: /^Continue · 08\.30$/ }).click();
+  await parent.getByRole('button', { name: 'Book now' }).click();
+  const code = (await parent.getByTestId('booking-code').textContent())!.trim();
+
+  // Not signed in → admin password first.
+  await page.goto('/now?now=08:33');
+  await expect(page.getByText('Sign in with the admin password to open this screen.')).toBeVisible();
+  await page.getByLabel('Password').fill('demo');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+
+  const card = page.getByRole('listitem').filter({ hasText: 'Yusri Ramadhan' });
+  await expect(card).toContainText('08.30 – 08.40');
+  await expect(card).toContainText('In progress');
+  await expect(card).toContainText('Language Room');
+  await expect(card).toContainText(code);
+  await expect(page.getByText('1 consultation(s) now')).toBeVisible();
+  await page.screenshot({ path: 'test-results/screens/now-screen.png' });
+
+  // Between sessions: nothing in progress, next start shown.
+  await page.goto('/now?now=08:20');
+  await expect(page.getByText('No consultations right now')).toBeVisible();
+  await expect(page.getByText('Next consultations start at 08.30')).toBeVisible();
+});

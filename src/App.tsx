@@ -5,6 +5,7 @@
  *   /smp-sma   parent booking flow, Junior–Senior High (teacher → time)
  *   /my        parent's own schedule
  *   /board     public live board for the venue TV
+ *   /now       "Now" screen: current consultations with room + code (admin)
  *   /teacher   teacher schedule (pick your name)
  *   /admin     admin dashboard (password)
  */
@@ -20,6 +21,7 @@ import { MySchedulePage } from './pages/MySchedulePage';
 const BoardPage = lazy(() => import('./pages/BoardPage'));
 const TeacherPage = lazy(() => import('./pages/TeacherPage'));
 const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
+const NowPage = lazy(() => import('./pages/NowPage'));
 
 export function App() {
   return (
@@ -36,6 +38,7 @@ export function App() {
                 <Route path="/board" element={<BoardPage />} />
                 <Route path="/teacher" element={<TeacherPage />} />
                 <Route path="/admin" element={<AdminPage />} />
+                <Route path="/now" element={<NowPage />} />
                 <Route path="*" element={<HomePage />} />
               </Routes>
             </Suspense>

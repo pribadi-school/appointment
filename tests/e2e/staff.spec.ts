@@ -115,6 +115,11 @@ test('teacher: sign in with name + PIN, own schedule with parent details, Done',
   await page.getByRole('button', { name: /^Nairah Umpa Camid 08\.30: Galih 9A$/ }).click();
   await expect(page.getByRole('dialog').getByText('Teacher’s note')).toBeVisible();
   await expect(page.getByRole('dialog').getByText('Strong in maths. Follow up in November.')).toBeVisible();
+  await page.keyboard.press('Escape');
+  // Bookings tab: a Teacher's notes column.
+  await page.getByRole('tab', { name: 'Bookings' }).click();
+  await expect(page.getByRole('columnheader', { name: 'Teacher’s notes' })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Strong in maths. Follow up in November.' })).toBeVisible();
 });
 
 test('admin: times per grade, e.g. Grade 1 in 10-minute slots; parents see them', async ({ page }) => {

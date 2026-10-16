@@ -14,7 +14,7 @@ import { SlotSheet } from './SlotSheet';
 export function BookingsTab() {
   const { t, lang } = useI18n();
   const { teachers, settings } = useLive();
-  const { bookings } = useAdmin();
+  const { bookings, notes } = useAdmin();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<{ teacherId: string; slotStart: number } | null>(null);
   const byId = useMemo(() => new Map(teachers.map((x) => [x.id, x])), [teachers]);
@@ -26,11 +26,11 @@ export function BookingsTab() {
       .filter(
         (b) =>
           !needle ||
-          [b.childName, b.childClass, classLabel(b.childClass, t), b.parentName, b.code, b.phone, byId.get(b.teacherId)?.name].some((v) =>
+          [b.childName, b.childClass, classLabel(b.childClass, t), b.parentName, b.code, b.phone, byId.get(b.teacherId)?.name, notes[b.id]].some((v) =>
             v?.toLowerCase().includes(needle),
           ),
       );
-  }, [bookings, q, byId, t]);
+  }, [bookings, q, byId, t, notes]);
 
   if (!bookings || !settings) return <Skeleton className="h-96 rounded-lg" />;
 
@@ -48,10 +48,10 @@ export function BookingsTab() {
             className="h-11 w-full rounded-md border border-border-strong bg-surface pr-3 pl-10 text-base outline-none focus:border-action focus:ring-1 focus:ring-action"
           />
         </div>
-        <Button size="sm" variant="secondary" icon={<Download className="size-4" aria-hidden />} onClick={() => exportCsv(bookings, teachers, settings, t, lang)}>
+        <Button size="sm" variant="secondary" icon={<Download className="size-4" aria-hidden />} onClick={() => exportCsv(bookings, teachers, settings, t, lang, notes)}>
           {t('a_exportCsv')}
         </Button>
-        <Button size="sm" icon={<FileSpreadsheet className="size-4" aria-hidden />} onClick={() => exportXlsx(bookings, teachers, settings, t, lang)}>
+        <Button size="sm" icon={<FileSpreadsheet className="size-4" aria-hidden />} onClick={() => exportXlsx(bookings, teachers, settings, t, lang, notes)}>
           {t('a_exportXlsx')}
         </Button>
       </div>
@@ -60,10 +60,10 @@ export function BookingsTab() {
         <p className="py-12 text-center text-muted-foreground">{t('a_noBookings')}</p>
       ) : (
         <Card className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="border-b border-border text-xs text-muted-foreground">
               <tr>
-                {['a_col_time', 'a_col_teacher', 'a_col_room', 'a_col_child', 'a_col_parent', 'a_col_phone', 'a_col_status', 'a_col_code'].map((k) => (
+                {['a_col_time', 'a_col_teacher', 'a_col_room', 'a_col_child', 'a_col_parent', 'a_col_phone', 'a_col_status', 'a_col_code', 'a_col_notes'].map((k) => (
                   <th key={k} className="px-3 py-2.5 font-bold">
                     {t(k as Parameters<typeof t>[0])}
                   </th>
@@ -94,6 +94,7 @@ export function BookingsTab() {
                         {b.code}
                       </button>
                     </td>
+                    <td className="max-w-72 px-3 py-2.5 text-sm whitespace-pre-line text-foreground">{notes[b.id] ?? <span className="text-muted-foreground">-</span>}</td>
                   </tr>
                 );
               })}

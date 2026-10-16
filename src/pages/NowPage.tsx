@@ -8,7 +8,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Backpack, CalendarDays, ChevronRight, Clock, Link2, MapPin, School } from 'lucide-react';
-import { Header, SchoolLogo } from '../components/Header';
+import QRCode from 'qrcode';
+import { Header } from '../components/Header';
 import { Card, Skeleton, StatusPill, cx } from '../components/ui';
 import { api } from '../lib/api';
 import { useI18n } from '../lib/i18n';
@@ -144,6 +145,11 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
     return () => window.removeEventListener('resize', fit);
   }, []);
   const grid = TV_GRID[level];
+  // TV: QR code to the booking site, where the logo would be (same link as the QR poster).
+  const [qr, setQr] = useState('');
+  useEffect(() => {
+    QRCode.toString(`https://${SITE}/`, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#12233c', light: '#ffffff' } }).then(setQr);
+  }, []);
   const perPage = tv ? grid.cols * grid.rows : 999;
 
   // Consultations in progress right now, each teacher on their own schedule.
@@ -187,7 +193,14 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
       <main className={cx('flex min-h-0 w-full flex-1 flex-col', tv ? 'px-[2vw] py-[2vh]' : 'px-4 pt-6 pb-10')}>
         <header className="mb-6 flex flex-col gap-5 sm:mb-[2.5vh] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-[2vw] sm:gap-y-3">
           <div className={cx('flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-[1.5vw]', tv && 'min-w-0 flex-1')}>
-            {tv && <SchoolLogo className="h-[clamp(36px,6vh,84px)]" />}
+            {tv && qr && (
+              <div
+                className="aspect-square h-[clamp(80px,14vh,180px)] shrink-0 rounded-md bg-surface p-[0.6vh] [&_svg]:size-full"
+                role="img"
+                aria-label={`QR: https://${SITE}/`}
+                dangerouslySetInnerHTML={{ __html: qr }}
+              />
+            )}
             <div>
               <p className="text-[clamp(13px,1.8vh,24px)] font-bold tracking-wide text-action uppercase">{t(sd ? 'lvl_sd' : 'lvl_smp')}</p>
               <h1 className="text-[clamp(24px,4.2vh,56px)] leading-tight font-extrabold">{t('now_hello')}</h1>

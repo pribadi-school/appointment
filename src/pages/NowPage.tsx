@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { Backpack, CalendarDays, ChevronRight, Clock, MapPin, School } from 'lucide-react';
+import { Backpack, CalendarDays, ChevronRight, Clock, Link2, MapPin, School } from 'lucide-react';
 import { Header, SchoolLogo } from '../components/Header';
 import { Card, Skeleton, StatusPill, cx } from '../components/ui';
 import { api } from '../lib/api';
@@ -18,6 +18,8 @@ import { fmtDate, fmtRange, fmtTime, jakartaDate, jakartaTime, slotStarts, teach
 import { type Booking, type Level, type Settings, type Teacher } from '../lib/types';
 
 const PAGE_MS = 15_000;
+// The live site's address, shown on the TV so parents can open it on their phone.
+const SITE = 'report.pribadidepok.sch.id';
 // TV layout per level, sized from the real bookings: SMP–SMA peaks at ~20
 // sessions at once (2 pages of 5 × 2), SD at 6 (one page of 3 × 2).
 const TV_GRID: Record<Level, { cols: number; rows: number }> = { smp_sma: { cols: 5, rows: 2 }, sd: { cols: 3, rows: 2 } };
@@ -183,8 +185,8 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
       {/* Phones and tablets get the app's header (logo + menu); the TV stays full screen. */}
       {!tv && <Header title={t('now_title')} />}
       <main className={cx('flex min-h-0 w-full flex-1 flex-col', tv ? 'px-[2vw] py-[2vh]' : 'px-4 pt-6 pb-10')}>
-        <header className="mb-6 flex flex-col gap-5 sm:mb-[2.5vh] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-8 sm:gap-y-3">
-          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-[1.5vw]">
+        <header className="mb-6 flex flex-col gap-5 sm:mb-[2.5vh] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-[2vw] sm:gap-y-3">
+          <div className={cx('flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-[1.5vw]', tv && 'min-w-0 flex-1')}>
             {tv && <SchoolLogo className="h-[clamp(36px,6vh,84px)]" />}
             <div>
               <p className="text-[clamp(13px,1.8vh,24px)] font-bold tracking-wide text-action uppercase">{t(sd ? 'lvl_sd' : 'lvl_smp')}</p>
@@ -192,6 +194,13 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
               <p className="text-[clamp(14px,2vh,26px)] text-muted-foreground">{t('now_lead')}</p>
             </div>
           </div>
+          {/* TV: the site address, so parents can open it on their phone. */}
+          {tv && (
+            <p className="hidden shrink-0 items-center gap-[0.4em] rounded-lg bg-action xl:flex px-[1em] py-[0.5em] text-[clamp(16px,2.6vh,36px)] leading-none font-bold text-on-primary">
+              <Link2 className="size-[0.9em] shrink-0" aria-hidden />
+              {SITE}
+            </p>
+          )}
           {/* Phones: clock and count on one row, the date under them. */}
           <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 border-t border-border-strong pt-4 sm:ml-auto sm:block sm:border-0 sm:pt-0 sm:text-right">
             <p className="flex shrink-0 items-center justify-end gap-2 text-[34px] leading-none font-extrabold tabular-nums sm:gap-3 sm:text-[clamp(28px,5vh,68px)]">

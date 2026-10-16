@@ -180,10 +180,12 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
   const sd = level === 'sd';
   return (
     <div className={cx('flex flex-col bg-surface-page', tv ? 'h-dvh overflow-hidden' : 'min-h-dvh')}>
-      <main className="flex min-h-0 w-full flex-1 flex-col px-4 py-4 lg:px-[2vw] lg:py-[2vh]">
+      {/* Phones and tablets get the app's header (logo + menu); the TV stays full screen. */}
+      {!tv && <Header title={t('now_title')} />}
+      <main className={cx('flex min-h-0 w-full flex-1 flex-col', tv ? 'px-[2vw] py-[2vh]' : 'px-4 pt-6 pb-10')}>
         <header className="mb-6 flex flex-col gap-5 sm:mb-[2.5vh] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-8 sm:gap-y-3">
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-[1.5vw]">
-            <SchoolLogo className="h-[clamp(36px,6vh,84px)]" />
+            {tv && <SchoolLogo className="h-[clamp(36px,6vh,84px)]" />}
             <div>
               <p className="text-[clamp(13px,1.8vh,24px)] font-bold tracking-wide text-action uppercase">{t(sd ? 'lvl_sd' : 'lvl_smp')}</p>
               <h1 className="text-[clamp(24px,4.2vh,56px)] leading-tight font-extrabold">{t('now_hello')}</h1>

@@ -40,11 +40,17 @@ export interface Api {
   teacherLogin(teacherId: string, pin: string): Promise<Session>;
   teacherSchedule(token: string): Promise<Booking[]>;
   teacherSetStatus(token: string, bookingId: string, status: Booking['status']): Promise<void>;
+  /** The teacher's private notes: { bookingId: note } for their own consultations. */
+  teacherNotes(token: string): Promise<Record<string, string>>;
+  /** Save a note on one of your own consultations; empty text clears it. */
+  teacherSetNote(token: string, bookingId: string, note: string): Promise<void>;
   logout(token: string): Promise<void>;
 
   // Admin
   adminLogin(password: string): Promise<Session>;
   adminBookings(token: string): Promise<Booking[]>;
+  /** Every teacher's notes: { bookingId: note }. */
+  adminNotes(token: string): Promise<Record<string, string>>;
   adminBook(token: string, input: BookInput): Promise<{ id: string; code: string }>;
   adminMove(token: string, bookingId: string, teacherId: string, slotStart: number): Promise<void>;
   adminCancel(token: string, bookingId: string): Promise<void>;

@@ -22,6 +22,8 @@ import { QrTab } from './QrTab';
 type AdminCtx = {
   token: string;
   bookings: Booking[] | null;
+  /** Teachers' private notes, { bookingId: note }. */
+  notes: Record<string, string>;
   refresh: () => Promise<void>;
   /** Run an admin action; shows a friendly toast on error. Returns true on success. */
   run: (fn: () => Promise<unknown>, okText?: string) => Promise<boolean>;
@@ -88,6 +90,7 @@ function AdminShell({ token, onSignOut }: { token: string; onSignOut: () => void
   const { version } = useLive();
   const [tab, setTab] = useState<Tab>('dashboard');
   const [bookings, setBookings] = useState<Booking[] | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});
 
   const handle = useCallback(
     (e: unknown) => {
@@ -100,7 +103,9 @@ function AdminShell({ token, onSignOut }: { token: string; onSignOut: () => void
 
   const refresh = useCallback(async () => {
     try {
-      setBookings(await api.adminBookings(token));
+      const [list, n] = await Promise.all([api.adminBookings(token), api.adminNotes(token)]);
+      setBookings(list);
+      setNotes(n);
     } catch (e) {
       handle(e);
     }
@@ -135,7 +140,7 @@ function AdminShell({ token, onSignOut }: { token: string; onSignOut: () => void
   ];
 
   return (
-    <Ctx.Provider value={{ token, bookings, refresh, run }}>
+    <Ctx.Provider value={{ token, bookings, notes, refresh, run }}>
       <div className="min-h-dvh">
         <Header
           title={t('a_title')}

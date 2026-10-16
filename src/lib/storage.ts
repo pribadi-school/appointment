@@ -25,7 +25,7 @@ export const KEYS = {
   parent: 'ptc.parent',
   teacherSession: 'ptc.teacherSession',
   lastTeacher: 'ptc.lastTeacher',
-  /** Teacher's private notes, on this phone only: `${teacherNotes}.${teacherId}` → { bookingId: text }. */
+  /** Old phone-only teacher notes (uploaded to the server once, then removed). */
   teacherNotes: 'ptc.teacherNotes',
   adminSession: 'ptc.adminSession',
   demoDb: 'ptc.demo.v5', // v5: own slot counts (v4: SD rooms 'Grade N', v3: 17 Oct, v2: SD)

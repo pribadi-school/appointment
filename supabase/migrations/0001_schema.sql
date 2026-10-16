@@ -663,6 +663,67 @@ begin
   end if;
 end $$;
 
+-- -----------------------------------------------------------------------------
+-- Teacher notes (teacher page, Notes button). A separate table on purpose:
+-- private.bookings and the booking functions are not changed. A note is seen
+-- by the booking's own teacher and by the admin, never by parents.
+-- No foreign key to private.bookings (adding one would lock that table);
+-- notes of a deleted booking are simply never shown.
+-- -----------------------------------------------------------------------------
+create table if not exists private.teacher_notes (
+  booking_id  uuid primary key,
+  note        text not null check (length(note) between 1 and 2000),
+  updated_at  timestamptz not null default now()
+);
+alter table private.teacher_notes enable row level security;  -- no policies = no direct access
+revoke all on private.teacher_notes from anon, authenticated;
+
+-- Save (or clear, with empty text) the note on one of your own consultations.
+create or replace function public.teacher_set_note(p_token text, p_booking_id uuid, p_note text) returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_s    private.sessions := private.require_session(p_token, 'teacher');
+  v_note text := btrim(coalesce(p_note, ''));
+begin
+  if not exists (
+    select 1 from private.bookings where id = p_booking_id and teacher_id = v_s.teacher_id and kind = 'booking'
+  ) then
+    raise exception 'NOT_FOUND';
+  end if;
+  if length(v_note) > 2000 then
+    raise exception 'INVALID_INPUT';
+  end if;
+  if v_note = '' then
+    delete from private.teacher_notes where booking_id = p_booking_id;
+  else
+    insert into private.teacher_notes (booking_id, note, updated_at) values (p_booking_id, v_note, now())
+    on conflict (booking_id) do update set note = excluded.note, updated_at = now();
+  end if;
+end $$;
+
+-- {bookingId: note} for the signed-in teacher's own consultations.
+create or replace function public.teacher_notes(p_token text) returns json
+language plpgsql security definer set search_path = '' as $$
+declare v_s private.sessions := private.require_session(p_token, 'teacher');
+begin
+  return coalesce((
+    select json_object_agg(n.booking_id, n.note)
+    from private.teacher_notes n join private.bookings b on b.id = n.booking_id
+    where b.teacher_id = v_s.teacher_id
+  ), '{}'::json);
+end $$;
+
+-- {bookingId: note} for every consultation (admin only).
+create or replace function public.admin_teacher_notes(p_token text) returns json
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform private.require_session(p_token, 'admin');
+  return coalesce((
+    select json_object_agg(n.booking_id, n.note)
+    from private.teacher_notes n join private.bookings b on b.id = n.booking_id
+  ), '{}'::json);
+end $$;
+
 -- =============================================================================
 -- PUBLIC FUNCTIONS — admin (password login)
 -- =============================================================================

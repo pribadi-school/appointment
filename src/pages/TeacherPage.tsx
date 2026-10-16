@@ -2,7 +2,8 @@
  * Teacher view: pick your name, enter the shared teacher PIN, see your own consultations
  * with parent details. Mark Done / No-show on the day. The current slot is
  * highlighted from the clock and scrolled into view. Each consultation has a
- * Notes button: private notes kept in this phone's storage only (no server data).
+ * Notes button: private notes saved on the server (private.teacher_notes), seen
+ * by this teacher and the admin only, never by parents.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Ban, Check, ChevronDown, LogOut, MapPin, MessageCircle, NotebookPen, Search, UserX } from 'lucide-react';
@@ -161,23 +162,45 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
   const currentRow = useRef<HTMLLIElement>(null);
   const scrolled = useRef(false);
   const teacher = teachers.find((x) => x.id === session.teacherId);
-  // Private notes per booking, on this phone only.
-  const notesKey = `${KEYS.teacherNotes}.${session.teacherId}`;
-  const [notes, setNotes] = useState<Record<string, string>>(() => load<Record<string, string>>(notesKey, {}));
+  // Private notes per booking (this teacher + admin only).
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [noteFor, setNoteFor] = useState<Booking | null>(null);
-  const saveNote = (id: string, text: string) => {
-    const next = { ...notes };
-    if (text.trim()) next[id] = text.trim();
-    else delete next[id];
-    setNotes(next);
-    save(notesKey, next);
-    toast(t('tv_notesSaved'), 'success');
-    setNoteFor(null);
+  const [savingNote, setSavingNote] = useState(false);
+  const saveNote = async (id: string, text: string) => {
+    setSavingNote(true);
+    try {
+      await api.teacherSetNote(session.token, id, text);
+      setNotes((n) => {
+        const next = { ...n };
+        if (text.trim()) next[id] = text.trim();
+        else delete next[id];
+        return next;
+      });
+      toast(t('tv_notesSaved'), 'success');
+      setNoteFor(null);
+    } catch (e) {
+      toast(errorText(errorCode(e)), 'error');
+    } finally {
+      setSavingNote(false);
+    }
   };
 
   const fetchSchedule = useCallback(async () => {
     try {
-      setBookings(await api.teacherSchedule(session.token));
+      const [list, saved] = await Promise.all([api.teacherSchedule(session.token), api.teacherNotes(session.token)]);
+      // Notes written earlier on this phone (before notes were saved on the
+      // server): upload them once, then forget the local copy.
+      const localKey = `${KEYS.teacherNotes}.${session.teacherId}`;
+      const local = load<Record<string, string>>(localKey, {});
+      for (const [id, text] of Object.entries(local)) {
+        if (!saved[id] && list.some((b) => b.id === id)) {
+          await api.teacherSetNote(session.token, id, text);
+          saved[id] = text;
+        }
+      }
+      if (Object.keys(local).length) save(localKey, null);
+      setBookings(list);
+      setNotes(saved);
       setError(null);
     } catch (e) {
       const code = errorCode(e);
@@ -186,7 +209,7 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
         onSignOut();
       } else setError(code);
     }
-  }, [session.token, onSignOut, toast, errorText]);
+  }, [session.token, session.teacherId, onSignOut, toast, errorText]);
 
   useEffect(() => {
     fetchSchedule();
@@ -343,13 +366,27 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
           </ol>
         )}
       </main>
-      {noteFor && <NoteSheet booking={noteFor} initial={notes[noteFor.id] ?? ''} onSave={(text) => saveNote(noteFor.id, text)} onClose={() => setNoteFor(null)} />}
+      {noteFor && (
+        <NoteSheet booking={noteFor} initial={notes[noteFor.id] ?? ''} saving={savingNote} onSave={(text) => saveNote(noteFor.id, text)} onClose={() => setNoteFor(null)} />
+      )}
     </div>
   );
 }
 
 /** Write or edit the private note for one consultation. */
-function NoteSheet({ booking, initial, onSave, onClose }: { booking: Booking; initial: string; onSave: (text: string) => void; onClose: () => void }) {
+function NoteSheet({
+  booking,
+  initial,
+  saving,
+  onSave,
+  onClose,
+}: {
+  booking: Booking;
+  initial: string;
+  saving: boolean;
+  onSave: (text: string) => void;
+  onClose: () => void;
+}) {
   const { t } = useI18n();
   const [text, setText] = useState(initial);
   return (
@@ -358,7 +395,7 @@ function NoteSheet({ booking, initial, onSave, onClose }: { booking: Booking; in
       onClose={onClose}
       title={t('tv_notesTitle', { child: booking.childName ?? '' })}
       footer={
-        <Button block onClick={() => onSave(text)} disabled={text.trim() === initial.trim()}>
+        <Button block loading={saving} onClick={() => onSave(text)} disabled={text.trim() === initial.trim()}>
           {t('save')}
         </Button>
       }
@@ -376,7 +413,6 @@ function NoteSheet({ booking, initial, onSave, onClose }: { booking: Booking; in
         placeholder={t('tv_notesPh')}
         className="w-full resize-y rounded-md border border-border-strong bg-surface px-4 py-3 text-base text-foreground outline-none placeholder:text-muted-foreground focus:border-action focus:ring-1 focus:ring-action"
       />
-      <p className="mt-2 text-sm text-muted-foreground">{t('tv_notesHint')}</p>
     </BottomSheet>
   );
 }

@@ -195,7 +195,6 @@ const en = {
   tv_notes: 'Notes',
   tv_notesTitle: 'Notes · {child}',
   tv_notesPh: 'e.g. Strong in maths, needs reading practice. Follow up in November.',
-  tv_notesHint: 'Saved on this phone only. Parents and other teachers never see it.',
   tv_notesSaved: 'Note saved',
 
   // Admin
@@ -235,6 +234,7 @@ const en = {
   a_markNoShow: 'Mark no-show',
   a_markBooked: 'Mark as booked',
   a_createdBy: 'Booked by',
+  a_teacherNote: 'Teacher’s note',
   a_by_parent: 'parent (online)',
   a_by_admin: 'admin',
   a_exportCsv: 'Export CSV',
@@ -532,7 +532,6 @@ const id: Record<MessageKey, string> = {
   tv_notes: 'Catatan',
   tv_notesTitle: 'Catatan · {child}',
   tv_notesPh: 'cth. Kuat di matematika, perlu latihan membaca. Tindak lanjut di bulan November.',
-  tv_notesHint: 'Tersimpan di HP ini saja. Orang tua dan guru lain tidak dapat melihatnya.',
   tv_notesSaved: 'Catatan tersimpan',
 
   a_title: 'Admin',
@@ -571,6 +570,7 @@ const id: Record<MessageKey, string> = {
   a_markNoShow: 'Tandai tidak hadir',
   a_markBooked: 'Tandai terjadwal',
   a_createdBy: 'Dipesan oleh',
+  a_teacherNote: 'Catatan guru',
   a_by_parent: 'orang tua (online)',
   a_by_admin: 'admin',
   a_exportCsv: 'Ekspor CSV',

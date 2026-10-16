@@ -317,6 +317,41 @@ describe('teacher and admin sessions', () => {
     expect(s.rows[0].status).toBe('done');
   });
 
+  it('teacher notes: own teacher + admin only; parents never get them; bookings untouched', async () => {
+    await c.query(`select public.set_teacher_pin('13579246')`);
+    await c.query(`select public.set_admin_password('correct horse')`);
+    const ta = await tLogin(teacherA, '13579246');
+    const tb = await tLogin(teacherB, '13579246');
+    const admin = (await c.query(`select public.admin_login('correct horse') r`)).rows[0].r;
+    const b = await book(c, teacherA, at('09:00'), '081234567890', 'Aisyah Putri');
+    const before = (await c.query('select row_to_json(x) r from private.bookings x where id = $1', [b.id])).rows[0].r;
+    const setNote = (token: string, note: string) => c.query('select public.teacher_set_note($1, $2, $3)', [token, b.id, note]);
+    const notesOf = async (fn: string, token: string) => (await c.query(`select public.${fn}($1) r`, [token])).rows[0].r;
+
+    await setNote(ta.token, '  Needs extra reading practice  ');
+    expect((await notesOf('teacher_notes', ta.token))[b.id]).toBe('Needs extra reading practice');
+    expect((await notesOf('admin_teacher_notes', admin.token))[b.id]).toBe('Needs extra reading practice');
+    // Another teacher can neither write nor read it; too long is refused.
+    expect(await outcome(setNote(tb.token, 'hacked'))).toBe('NOT_FOUND');
+    expect(await notesOf('teacher_notes', tb.token)).toEqual({});
+    expect(await outcome(setNote(ta.token, 'x'.repeat(2001)))).toBe('INVALID_INPUT');
+    // Parents: My schedule has no note; the public role can't read the table.
+    const mine = (await c.query('select public.parent_bookings($1, $2) r', ['081234567890', 'Aisyah'])).rows[0].r;
+    expect(JSON.stringify(mine)).not.toContain('reading practice');
+    await c.query('set role anon');
+    try {
+      expect(await outcome(c.query('select * from private.teacher_notes'))).toMatch(/permission denied/);
+    } finally {
+      await c.query('reset role');
+    }
+    // The booking row itself is unchanged by notes.
+    const after = (await c.query('select row_to_json(x) r from private.bookings x where id = $1', [b.id])).rows[0].r;
+    expect(after).toEqual(before);
+    // Empty text clears it.
+    await setNote(ta.token, '   ');
+    expect(await notesOf('teacher_notes', ta.token)).toEqual({});
+  });
+
   it('wrong PINs lock out only that teacher, and only for a while', async () => {
     await c.query(`select public.set_teacher_pin('13579246')`);
     for (let i = 0; i < 10; i++) expect((await tLogin(teacherA, '00000000')).error).toBe('BAD_PIN');

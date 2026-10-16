@@ -144,10 +144,13 @@ export function createSupabaseApi(url: string, key: string): Api {
     teacherLogin: (teacherId, pin) => login('teacher_login', { p_teacher_id: teacherId, p_pin: pin }),
     teacherSchedule: async (token) => (await rpc<Row[]>('teacher_schedule', { p_token: token })).map(toBooking),
     teacherSetStatus: (token, id, status) => rpc('teacher_set_status', { p_token: token, p_booking_id: id, p_status: status }),
+    teacherNotes: async (token) => (await rpc<Record<string, string> | null>('teacher_notes', { p_token: token })) ?? {},
+    teacherSetNote: (token, id, note) => rpc('teacher_set_note', { p_token: token, p_booking_id: id, p_note: note }),
     logout: (token) => rpc('logout', { p_token: token }),
 
     adminLogin: (password) => login('admin_login', { p_password: password }),
     adminBookings: async (token) => (await rpc<Row[]>('admin_bookings', { p_token: token })).map(toBooking),
+    adminNotes: async (token) => (await rpc<Record<string, string> | null>('admin_teacher_notes', { p_token: token })) ?? {},
     adminBook: (token, i) =>
       rpc('admin_book', {
         p_token: token,

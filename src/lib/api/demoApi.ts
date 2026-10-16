@@ -23,6 +23,8 @@ type Db = {
   sessions: { token: string; role: 'admin' | 'teacher'; teacherId?: string; expiresAt: number }[];
   /** Shared teacher PIN; missing in demo data saved before PINs existed. */
   teacherPin?: string;
+  /** Teachers' private notes, { bookingId: note } (same rules as private.teacher_notes). */
+  notes?: Record<string, string>;
 };
 
 const DEMO_ADMIN_PASSWORD = 'demo';
@@ -285,6 +287,26 @@ export function createDemoApi(): Api {
       b.status = status;
       write(db, 'slots');
     },
+    async teacherNotes(token) {
+      await wait(120);
+      const db = read();
+      const s = session(db, token, 'teacher');
+      const mine = new Set(db.bookings.filter((b) => b.teacherId === s.teacherId).map((b) => b.id));
+      return Object.fromEntries(Object.entries(db.notes ?? {}).filter(([id]) => mine.has(id)));
+    },
+    async teacherSetNote(token, id, note) {
+      await wait(150);
+      const db = read();
+      const s = session(db, token, 'teacher');
+      if (!db.bookings.some((b) => b.id === id && b.teacherId === s.teacherId && b.kind === 'booking')) throw new AppError('NOT_FOUND');
+      const text = note.trim();
+      if (text.length > 2000) throw new AppError('INVALID_INPUT');
+      const notes = { ...(db.notes ?? {}) };
+      if (text) notes[id] = text;
+      else delete notes[id];
+      db.notes = notes;
+      save(KEYS.demoDb, db);
+    },
     async logout(token) {
       const db = read();
       db.sessions = db.sessions.filter((s) => s.token !== token);
@@ -301,6 +323,13 @@ export function createDemoApi(): Api {
       const db = read();
       session(db, token, 'admin');
       return [...db.bookings].sort((a, b) => a.slotStart - b.slotStart);
+    },
+    async adminNotes(token) {
+      await wait(120);
+      const db = read();
+      session(db, token, 'admin');
+      const ids = new Set(db.bookings.map((b) => b.id));
+      return Object.fromEntries(Object.entries(db.notes ?? {}).filter(([id]) => ids.has(id)));
     },
     async adminBook(token, i) {
       await wait();

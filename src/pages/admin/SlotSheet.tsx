@@ -15,7 +15,7 @@ import { useAdmin } from './AdminPage';
 export function SlotSheet({ teacherId, slotStart, onClose }: { teacherId: string; slotStart: number; onClose: () => void }) {
   const { t, lang } = useI18n();
   const { teachers, settings } = useLive();
-  const { token, bookings, run } = useAdmin();
+  const { token, bookings, notes, run } = useAdmin();
   const teacher = teachers.find((x) => x.id === teacherId);
   const booking = bookings?.find((b) => b.teacherId === teacherId && b.slotStart === slotStart);
   const [busy, setBusy] = useState(false);
@@ -131,6 +131,12 @@ export function SlotSheet({ teacherId, slotStart, onClose }: { teacherId: string
             </dd>
             <dt className="text-muted-foreground">{t('a_createdBy')}</dt>
             <dd className="text-foreground">{booking.createdBy === 'admin' ? t('a_by_admin') : t('a_by_parent')}</dd>
+            {notes[booking.id] && (
+              <>
+                <dt className="text-muted-foreground">{t('a_teacherNote')}</dt>
+                <dd className="whitespace-pre-line text-foreground">{notes[booking.id]}</dd>
+              </>
+            )}
           </dl>
 
           <div className="flex flex-wrap gap-2">

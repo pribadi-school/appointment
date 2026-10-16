@@ -100,6 +100,14 @@ test('teacher: sign in with name + PIN, own schedule with parent details, Done',
   await now.getByRole('button', { name: 'Done' }).click();
   await expect(now.getByText('Done', { exact: true })).toBeVisible();
   await expect(now.getByRole('button', { name: 'Undo' })).toBeVisible();
+
+  // Private notes: saved on this phone, still there after a reload.
+  await now.getByRole('button', { name: 'Notes' }).click();
+  await page.getByRole('dialog').getByRole('textbox').fill('Strong in maths. Follow up in November.');
+  await page.getByRole('dialog').getByRole('button', { name: 'Save' }).click();
+  await expect(now.getByText('Strong in maths. Follow up in November.')).toBeVisible();
+  await page.reload();
+  await expect(page.locator('li[aria-current="time"]').getByText('Strong in maths. Follow up in November.')).toBeVisible();
 });
 
 test('admin: times per grade, e.g. Grade 1 in 10-minute slots; parents see them', async ({ page }) => {

@@ -1,10 +1,11 @@
 /**
  * Teacher view: pick your name, enter the shared teacher PIN, see your own consultations
  * with parent details. Mark Done / No-show on the day. The current slot is
- * highlighted from the clock and scrolled into view.
+ * highlighted from the clock and scrolled into view. Each consultation has a
+ * Notes button: private notes kept in this phone's storage only (no server data).
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Ban, Check, ChevronDown, LogOut, MapPin, MessageCircle, Search, UserX } from 'lucide-react';
+import { Ban, Check, ChevronDown, LogOut, MapPin, MessageCircle, NotebookPen, Search, UserX } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { Header } from '../components/Header';
 import { useToast } from '../components/Toast';
@@ -160,6 +161,19 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
   const currentRow = useRef<HTMLLIElement>(null);
   const scrolled = useRef(false);
   const teacher = teachers.find((x) => x.id === session.teacherId);
+  // Private notes per booking, on this phone only.
+  const notesKey = `${KEYS.teacherNotes}.${session.teacherId}`;
+  const [notes, setNotes] = useState<Record<string, string>>(() => load<Record<string, string>>(notesKey, {}));
+  const [noteFor, setNoteFor] = useState<Booking | null>(null);
+  const saveNote = (id: string, text: string) => {
+    const next = { ...notes };
+    if (text.trim()) next[id] = text.trim();
+    else delete next[id];
+    setNotes(next);
+    save(notesKey, next);
+    toast(t('tv_notesSaved'), 'success');
+    setNoteFor(null);
+  };
 
   const fetchSchedule = useCallback(async () => {
     try {
@@ -307,7 +321,19 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
                               </Button>
                             </>
                           )}
+                          <Button size="sm" variant="ghost" onClick={() => setNoteFor(b)} icon={<NotebookPen className="size-4" aria-hidden />}>
+                            {t('tv_notes')}
+                          </Button>
                         </div>
+                        {notes[b.id] && (
+                          <button
+                            type="button"
+                            onClick={() => setNoteFor(b)}
+                            className="mt-2.5 block w-full rounded-md border border-border-strong bg-surface-page px-3 py-2 text-left text-sm whitespace-pre-line text-foreground transition-colors duration-150 hover:border-action"
+                          >
+                            {notes[b.id]}
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
@@ -317,6 +343,40 @@ function TeacherSchedule({ session, onSignOut }: { session: Session; onSignOut: 
           </ol>
         )}
       </main>
+      {noteFor && <NoteSheet booking={noteFor} initial={notes[noteFor.id] ?? ''} onSave={(text) => saveNote(noteFor.id, text)} onClose={() => setNoteFor(null)} />}
     </div>
+  );
+}
+
+/** Write or edit the private note for one consultation. */
+function NoteSheet({ booking, initial, onSave, onClose }: { booking: Booking; initial: string; onSave: (text: string) => void; onClose: () => void }) {
+  const { t } = useI18n();
+  const [text, setText] = useState(initial);
+  return (
+    <BottomSheet
+      open
+      onClose={onClose}
+      title={t('tv_notesTitle', { child: booking.childName ?? '' })}
+      footer={
+        <Button block onClick={() => onSave(text)} disabled={text.trim() === initial.trim()}>
+          {t('save')}
+        </Button>
+      }
+    >
+      <label htmlFor="teacher-note" className="sr-only">
+        {t('tv_notes')}
+      </label>
+      <textarea
+        id="teacher-note"
+        data-autofocus
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        maxLength={2000}
+        rows={6}
+        placeholder={t('tv_notesPh')}
+        className="w-full resize-y rounded-md border border-border-strong bg-surface px-4 py-3 text-base text-foreground outline-none placeholder:text-muted-foreground focus:border-action focus:ring-1 focus:ring-action"
+      />
+      <p className="mt-2 text-sm text-muted-foreground">{t('tv_notesHint')}</p>
+    </BottomSheet>
   );
 }

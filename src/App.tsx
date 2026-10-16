@@ -5,7 +5,9 @@
  *   /smp-sma   parent booking flow, Junior–Senior High (teacher → time)
  *   /my        parent's own schedule
  *   /board     public live board for the venue TV
- *   /now       "Now" screen: current consultations with room + code (admin)
+ *   /now       live dashboard (admin): choose level; /now/sd, /now/smp-sma show
+ *              the consultations in progress with room + booking code
+ *   /livedummy public preview of that screen with sample data (/livedummy/sd)
  *   /teacher   teacher schedule (pick your name)
  *   /admin     admin dashboard (password)
  */
@@ -22,6 +24,7 @@ const BoardPage = lazy(() => import('./pages/BoardPage'));
 const TeacherPage = lazy(() => import('./pages/TeacherPage'));
 const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
 const NowPage = lazy(() => import('./pages/NowPage'));
+const NowDummyPage = lazy(() => import('./pages/NowPage').then((m) => ({ default: m.NowDummyPage })));
 
 export function App() {
   return (
@@ -39,6 +42,10 @@ export function App() {
                 <Route path="/teacher" element={<TeacherPage />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/now" element={<NowPage />} />
+                <Route path="/now/sd" element={<NowPage level="sd" />} />
+                <Route path="/now/smp-sma" element={<NowPage level="smp_sma" />} />
+                <Route path="/livedummy" element={<NowDummyPage level="smp_sma" />} />
+                <Route path="/livedummy/sd" element={<NowDummyPage level="sd" />} />
                 <Route path="*" element={<HomePage />} />
               </Routes>
             </Suspense>

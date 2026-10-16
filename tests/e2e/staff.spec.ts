@@ -161,10 +161,14 @@ test('now screen: admin only; shows the consultation in progress with room and b
   const code = (await parent.getByTestId('booking-code').textContent())!.trim();
 
   // Not signed in → admin password first.
-  await page.goto('/now?now=08:33');
+  await page.goto('/now');
   await expect(page.getByText('Sign in with the admin password to open this screen.')).toBeVisible();
   await page.getByLabel('Password').fill('demo');
   await page.getByRole('button', { name: 'Sign in' }).click();
+  // Choose the level; each level has its own page.
+  await page.getByRole('link', { name: 'Junior – Senior High School' }).click();
+  await expect(page).toHaveURL(/\/now\/smp-sma$/);
+  await page.goto('/now/smp-sma?now=08:33');
 
   const card = page.getByRole('listitem').filter({ hasText: 'Yusri Ramadhan' });
   await expect(card).toContainText('08.30 – 08.40');
@@ -174,8 +178,28 @@ test('now screen: admin only; shows the consultation in progress with room and b
   await expect(page.getByText('1 consultation(s) now')).toBeVisible();
   await page.screenshot({ path: 'test-results/screens/now-screen.png' });
 
+  // The SD page never shows SMP–SMA teachers.
+  await page.goto('/now/sd?now=08:33');
+  await expect(page.getByText('Primary School', { exact: true })).toBeVisible();
+  await expect(page.getByRole('listitem').filter({ hasText: 'Yusri Ramadhan' })).toHaveCount(0);
+
   // Between sessions: nothing in progress, next start shown.
-  await page.goto('/now?now=08:20');
+  await page.goto('/now/smp-sma?now=08:20');
   await expect(page.getByText('No consultations at this moment')).toBeVisible();
   await expect(page.getByText('Next consultations start at 08.30')).toBeVisible();
+});
+
+test('live dashboard preview (/livedummy): public, sample data, always has sessions', async ({ page }) => {
+  await page.goto('/livedummy');
+  await expect(page.getByText('Preview with sample data. Booking codes are not real.')).toBeVisible();
+  await expect(page.getByText('Welcome, Ayah & Bunda!')).toBeVisible();
+  // No password, and cards are there (every teacher has a sample session).
+  await expect(page.getByLabel('Password')).toHaveCount(0);
+  await expect(page.getByRole('listitem').first()).toContainText('In progress');
+  await expect(page.getByText(/consultation\(s\) now/)).toBeVisible();
+  // SD page: only SD classes.
+  await page.getByRole('link', { name: 'Primary School' }).click();
+  await expect(page).toHaveURL(/\/livedummy\/sd$/);
+  await expect(page.getByRole('listitem').first()).toContainText('Grade');
+  await expect(page.getByText('6 consultation(s) now')).toBeVisible();
 });

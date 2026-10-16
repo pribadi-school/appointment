@@ -14,9 +14,9 @@ import { cx } from './ui';
 const LINKS: { to: string; label: MessageKey; icon: typeof House; group: 'parents' | 'staff' }[] = [
   { to: '/', label: 'nav_book', icon: House, group: 'parents' },
   { to: '/my', label: 'nav_mySchedule', icon: CalendarCheck, group: 'parents' },
+  { to: '/now', label: 'nav_now', icon: Tv, group: 'parents' },
   { to: '/teacher', label: 'nav_teacher', icon: GraduationCap, group: 'staff' },
   { to: '/admin', label: 'nav_admin', icon: ShieldCheck, group: 'staff' },
-  { to: '/now', label: 'nav_now', icon: Tv, group: 'staff' },
 ];
 
 export function NavMenu() {

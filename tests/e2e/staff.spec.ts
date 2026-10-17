@@ -176,7 +176,9 @@ test('live dashboard: public, no sign-in; shows the consultation in progress wit
   await expect(card).toContainText('08.30 – 08.40');
   await expect(card).toContainText('In progress');
   await expect(card).toContainText('Language Room');
-  await expect(card).toContainText(code);
+  // The child's name, not the booking code.
+  await expect(card).toContainText('Bima');
+  await expect(card).not.toContainText(code);
   await expect(page.getByText('1 consultation(s) now')).toBeVisible();
   await page.screenshot({ path: 'test-results/screens/now-screen.png' });
 

@@ -1,6 +1,6 @@
 /**
  * Live dashboard for the venue TV (public, no sign-in): one card per consultation
- * happening right now, with teacher, room and booking code, so parents can
+ * happening right now, with teacher, room and the child's name, so parents can
  * find where to go. Cards are grouped by room; when they don't all fit, the
  * screen pages through them every 15 seconds. Updates live and moves on by
  * itself when slots change (each teacher on their own times).
@@ -75,6 +75,7 @@ export function NowDummyPage({ level }: { level: Level }) {
 
 const DUMMY_START = '09:05';
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const DUMMY_CHILDREN = ['Nadia Putri', 'Raka Pratama', 'Citra Lestari', 'Bima Saputra', 'Alya Rahma', 'Dimas Prakoso', 'Kirana Ayu', 'Fajar Nugroho', 'Salsa Amelia', 'Rizky Hidayat', 'Naura Zahra', 'Arka Wibowo'];
 const DUMMY_CLASSES = ['7A', '7B', '7C', '8A', '8B', '9A', '9B', '10A', '10B', '11A', '11B', '12A', '12B'];
 
 /** Same input, same code: stable across re-renders. */
@@ -96,7 +97,7 @@ function sampleBookings(settings: Settings, teachers: Teacher[], level: Level): 
       const code = sampleCode(`${teacher.id}|${s}`);
       out.push({
         id: `${teacher.id}|${s}`, code, teacherId: teacher.id, slotStart: s, kind: 'booking', status: 'booked',
-        parentName: null, childName: null, childClass: level === 'sd' ? teacher.homeroomClass : DUMMY_CLASSES[(code.charCodeAt(0) + i) % DUMMY_CLASSES.length],
+        parentName: null, childName: DUMMY_CHILDREN[(code.charCodeAt(1) + i) % DUMMY_CHILDREN.length], childClass: level === 'sd' ? teacher.homeroomClass : DUMMY_CLASSES[(code.charCodeAt(0) + i) % DUMMY_CLASSES.length],
         phone: null, note: null, lang: 'en', createdBy: 'parent', createdAt: 0,
       });
     });
@@ -287,9 +288,11 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
                     {teacher.room ?? t('roomTbc')}
                   </p>
                   <div className={cx('flex shrink-0 items-end justify-between gap-3 border-t border-border-strong', tv ? 'mt-auto pt-[2.5cqh]' : 'mt-4 pt-4')}>
-                    <div>
-                      <p className={cx('leading-snug text-muted-foreground', tv ? 'text-[min(4cqh,4.2cqw)]' : 'text-xs')}>{t('done_code')}</p>
-                      <p className={cx('font-mono leading-none font-bold tracking-[0.12em] text-foreground', tv ? 'text-[min(18cqh,20cqw)]' : 'mt-1 text-4xl')}>{booking.code}</p>
+                    <div className="min-w-0">
+                      <p className={cx('leading-snug text-muted-foreground', tv ? 'text-[min(4cqh,4.2cqw)]' : 'text-xs')}>{t('now_child')}</p>
+                      <p className={cx('truncate leading-tight font-bold text-foreground', tv ? 'text-[min(9cqh,8.5cqw)]' : 'mt-1 text-2xl')} title={booking.childName ?? ''}>
+                        {booking.childName ?? '-'}
+                      </p>
                     </div>
                     {!sd && (
                       <p className={cx('leading-none font-semibold text-muted-foreground', tv ? 'text-[min(5.5cqh,6cqw)]' : 'text-base')}>{classLabel(booking.childClass, t)}</p>
@@ -298,7 +301,7 @@ function NowScreen({ level, dummy }: { level: Level; dummy?: boolean }) {
                   <p className={cx('shrink-0 truncate leading-snug text-muted-foreground', tv ? 'mt-[1.5cqh] text-[min(4.2cqh,4.4cqw)]' : 'mt-3 text-sm')}>
                     {next ? (
                       <>
-                        {t('b_next')}: <span className="font-semibold text-foreground tabular-nums">{fmtTime(next.slotStart)}</span> · {t('now_code', { code: next.code })}
+                        {t('b_next')}: <span className="font-semibold text-foreground tabular-nums">{fmtTime(next.slotStart)}</span> {next.childName && ` · ${next.childName}`}
                       </>
                     ) : (
                       t('b_noMore')

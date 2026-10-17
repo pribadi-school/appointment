@@ -323,7 +323,7 @@ export function createDemoApi(): Api {
       // Demo data is made up, so no time window (the tests use ?now=).
       return read()
         .bookings.filter((b) => b.kind === 'booking')
-        .map((b) => ({ ...b, parentName: null, childName: null, phone: null, note: null }))
+        .map((b) => ({ ...b, parentName: null, phone: null, note: null }))
         .sort((a, b) => a.slotStart - b.slotStart);
     },
     async adminBookings(token) {

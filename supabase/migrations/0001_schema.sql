@@ -726,15 +726,15 @@ end $$;
 
 -- -----------------------------------------------------------------------------
 -- Live dashboard (/now, public, no sign-in): the consultations around the
--- current time with their booking codes, for the venue TV. Read-only. Only
--- code, teacher, time, status and class: never parent/child names or phones,
+-- current time, for the venue TV. Read-only. Only code, teacher, time, status,
+-- class and the child's name: never the parent's name or phone,
 -- and only bookings within 3 hours of now, not the whole day.
 -- -----------------------------------------------------------------------------
 create or replace function public.now_board() returns json
 language sql stable security definer set search_path = '' as $$
   select coalesce(json_agg(json_build_object(
     'id', b.id, 'code', b.code, 'teacherId', b.teacher_id, 'slotStart', b.slot_start,
-    'kind', b.kind, 'status', b.status, 'childClass', b.child_class
+    'kind', b.kind, 'status', b.status, 'childClass', b.child_class, 'childName', b.child_name
   ) order by b.slot_start), '[]'::json)
   from private.bookings b
   where b.kind = 'booking'
